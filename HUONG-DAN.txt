@@ -1,40 +1,8 @@
-GOI VA V6 - VUONG CHI
+VUONG CHI V8.1
 
-MUC TIEU
-1. Giu phong cach font condensed dang dung local.
-2. Tranh Cloudflare bi roi ve Segoe UI/Arial rong lam tieu de xuong dong.
-3. Sua trang CONG TRINH khong con phu thuoc URL du-an.html.
-4. Doi ten asset sang V6 de tranh trinh duyet/CDN bam cache file V5 cu.
+1. Giai nen toan bo noi dung vao F:\webnhap\vuong-chi-v5
+2. Chay APPLY-FIX-V8.1.bat
+3. Mo index.html va du-an.html de kiem tra local.
+4. Neu dung thi git add / commit / push.
 
-CACH DUNG
-1. Giai nen TOAN BO noi dung goi nay vao:
-   F:\webnhap\vuong-chi-v5
-
-   Khi dung, ban se thay:
-   F:\webnhap\vuong-chi-v5\index.html
-   F:\webnhap\vuong-chi-v5\APPLY-FIX-V6.bat
-   F:\webnhap\vuong-chi-v5\assets\styles-v6.css
-   F:\webnhap\vuong-chi-v5\assets\app-v6.js
-
-2. Double-click APPLY-FIX-V6.bat.
-   Script chi doi cac tham chieu trong file .html:
-   styles-v5.css -> styles-v6.css
-   app-v5.js     -> app-v6.js
-
-3. Mo index.html local va du-an.html local de kiem tra.
-
-4. Push len GitHub:
-   cd /d F:\webnhap\vuong-chi-v5
-   git add .
-   git commit -m "Fix font and Cloudflare project route v6"
-   git push
-
-FONT
-- Tren Windows, CSS van uu tien Bahnschrift/Bahnschrift Condensed de giu dung cam giac local.
-- Neu browser/OS khong cho dung font local, website tu dung Barlow Condensed tu Google Fonts de giu dang chu hep, dam va cong nghiep.
-- Goi nay KHONG chua file font Microsoft.
-
-LOI CONG TRINH DA VA
-- Cu: JS chi chay neu location.pathname ket thuc bang du-an.html.
-- Cloudflare co the phuc vu URL dang /du-an, lam bo loc/menu cong trinh khong khoi tao.
-- Moi: JS nhan dien trang bang DOM (.filterbar + .project-grid), nen chay dung tren local, Cloudflare Pages va custom domain.
+V8.1 sua loi kiem tra UTF-8 gia cua V8. V8 da doi CSS thanh cong nhung phep kiem tra qua chat vi doi chu 'Xay Dung' dung kieu viet hoa/cu phap cu the.
