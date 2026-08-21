@@ -75,8 +75,9 @@ document.addEventListener('DOMContentLoaded', () => {
     'nha-be-tong': 'Nhà bê tông đúc sẵn',
     'nha-lap-ghep': 'Nhà lắp ghép'
   };
-  const projects = (Array.isArray(window.VC_PROJECTS) ? window.VC_PROJECTS : []).map((project, index) => ({
+  const allProjects = (Array.isArray(window.VC_PROJECTS) ? window.VC_PROJECTS : []).map((project, index) => ({
     legacyIndex: Number.isInteger(project.legacyIndex) ? project.legacyIndex : null,
+    sourceIndex: index,
     slug: project.slug || `cong-trinh-${index + 1}`,
     title: project.title || 'Công trình Vương Chí',
     type: project.type || 'nha-pho',
@@ -89,8 +90,11 @@ document.addEventListener('DOMContentLoaded', () => {
     description: project.description || 'Thi công thực tế',
     content: project.content || project.description || 'Hình ảnh thực tế do Vương Chí ghi nhận trong quá trình thi công và hoàn thiện.',
     images: Array.isArray(project.images) ? project.images.filter(Boolean) : [],
-    publishedAt: project.publishedAt || ''
-  })).filter(project => project.images.length);
+    hidden: project.hidden === true,
+    publishedAt: project.publishedAt || '',
+    updatedAt: project.updatedAt || ''
+  }));
+  const projects = allProjects.filter(project => !project.hidden && project.images.length);
 
   const projectParam = (project, index) => encodeURIComponent(project.slug || String(index));
   const projectHref = (project, index) => `cong-trinh.html?project=${projectParam(project, index)}`;
@@ -100,12 +104,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const raw = decodeURIComponent(String(requested));
     if (/^\d+$/.test(raw)) {
       const legacy = Number(raw);
-      const legacyIndex = projects.findIndex(project => project.legacyIndex === legacy);
-      if (legacyIndex >= 0) return legacyIndex;
-      if (legacy >= 0 && legacy < projects.length) return legacy;
+      return projects.findIndex(project => project.legacyIndex === legacy);
     }
-    const slugIndex = projects.findIndex(project => project.slug === raw);
-    return slugIndex;
+    return projects.findIndex(project => project.slug === raw);
   };
 
   const detailHost = document.querySelector('[data-project-detail]');

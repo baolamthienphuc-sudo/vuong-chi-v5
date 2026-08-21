@@ -161,7 +161,9 @@ export async function onRequestPost(context) {
       description,
       content,
       images: imageEntries.map(entry => entry.path),
-      publishedAt: new Date().toISOString()
+      hidden: input.hidden === true || input.visibility === 'hidden',
+      publishedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     projects.unshift(project);
     const projectsFile = `window.VC_PROJECTS = ${JSON.stringify(projects, null, 2)};\n`;
@@ -195,6 +197,7 @@ export async function onRequestPost(context) {
     return json({
       ok: true,
       slug,
+      project,
       commit: commit.sha,
       path: `cong-trinh?project=${slug}`,
       message: 'Đã cập nhật GitHub. Cloudflare sẽ tự triển khai commit mới.'

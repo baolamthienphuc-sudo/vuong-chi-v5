@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>Quản trị công trình | Vương Chí Construction</title>
+  <title>Quản lý công trình | Vương Chí Construction</title>
   <link rel="icon" href="../assets/images/logo.png">
   <link rel="stylesheet" href="admin.css">
 </head>
@@ -17,8 +17,8 @@
       </a>
       <div class="login-copy">
         <p class="eyebrow">KHU VỰC QUẢN TRỊ</p>
-        <h1>Đăng công trình</h1>
-        <p>Nhập mật khẩu quản trị để tiếp tục.</p>
+        <h1>Quản lý công trình</h1>
+        <p>Đăng, chỉnh sửa và ẩn/hiện công trình trên website.</p>
       </div>
       <form data-login-form>
         <label class="field">
@@ -39,9 +39,10 @@
         <span><b>VƯƠNG CHÍ</b><small>ADMIN</small></span>
       </a>
       <nav class="sidebar-nav">
-        <a class="active" href="./"><span>＋</span> Đăng công trình</a>
-        <a href="../du-an.html" target="_blank" rel="noopener"><span>▦</span> Xem trang công trình</a>
-        <a href="../index.html" target="_blank" rel="noopener"><span>↗</span> Xem website</a>
+        <a class="active" href="#manage"><span>▦</span> Quản lý công trình</a>
+        <a href="#editor" data-new-project><span>＋</span> Đăng công trình mới</a>
+        <a href="../du-an.html" target="_blank" rel="noopener"><span>↗</span> Xem trang công trình</a>
+        <a href="../index.html" target="_blank" rel="noopener"><span>⌂</span> Xem website</a>
       </nav>
       <div class="sidebar-bottom">
         <div class="repo-status"><i></i><span>GitHub → Cloudflare</span></div>
@@ -53,108 +54,145 @@
       <header class="admin-header">
         <div>
           <p class="eyebrow">NỘI DUNG WEBSITE</p>
-          <h1>Đăng công trình mới</h1>
-          <p>Bài mới sẽ được đưa lên đầu menu Công trình sau khi Cloudflare deploy xong.</p>
+          <h1>Quản lý công trình</h1>
+          <p>Chỉnh sửa các bài hiện có, ẩn bản nháp khi chưa sẵn sàng và đăng công trình mới.</p>
         </div>
-        <a class="button ghost" href="../du-an.html" target="_blank" rel="noopener">Xem công trình ↗</a>
+        <button class="button primary" type="button" data-new-project>＋ Đăng công trình mới</button>
       </header>
 
-      <form class="project-form" data-project-form>
-        <div class="form-column">
-          <section class="panel">
-            <div class="panel-head"><div><span>01</span><h2>Thông tin chính</h2></div><p>Các nội dung hiển thị trên thẻ và trang chi tiết.</p></div>
-            <div class="field-grid two">
-              <label class="field field-wide">
-                <span>Tên công trình <b>*</b></span>
-                <input name="title" maxlength="120" placeholder="VD: Nhà phố 2 tầng hiện đại tại Bảo Lộc" required>
-              </label>
-              <label class="field field-wide">
-                <span>Đường dẫn bài <b>*</b></span>
-                <div class="slug-input"><small>cong-trinh?project=</small><input name="slug" maxlength="100" placeholder="nha-pho-2-tang-bao-loc" required></div>
-                <em>Không dấu, dùng dấu gạch ngang. Hệ thống sẽ tự tạo theo tiêu đề.</em>
-              </label>
-              <label class="field">
-                <span>Loại công trình <b>*</b></span>
-                <select name="type" required>
-                  <option value="nha-pho">Nhà phố</option>
-                  <option value="nha-cap-4">Nhà cấp 4</option>
-                  <option value="biet-thu">Biệt thự</option>
-                  <option value="nha-vuon">Nhà vườn</option>
-                  <option value="nha-chau-au">Nhà châu Âu</option>
-                  <option value="nha-be-tong">Nhà bê tông đúc sẵn</option>
-                  <option value="nha-lap-ghep">Nhà lắp ghép</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Vị trí công trình</span>
-                <input name="location" maxlength="100" placeholder="Bảo Lộc, Lâm Đồng">
-              </label>
-              <label class="field">
-                <span>Số tầng</span>
-                <input name="floors" maxlength="50" placeholder="2 tầng">
-              </label>
-              <label class="field">
-                <span>Diện tích đất</span>
-                <input name="area" maxlength="80" placeholder="5 × 20 m (100 m²)">
-              </label>
-              <label class="field">
-                <span>Diện tích xây dựng</span>
-                <input name="buildArea" maxlength="80" placeholder="180 m²">
-              </label>
-              <label class="field">
-                <span>Chi phí xây dựng</span>
-                <input name="cost" maxlength="100" placeholder="Khoảng 1,2 tỷ đồng">
-              </label>
-            </div>
-          </section>
+      <section class="manager-panel panel" id="manage">
+        <div class="manager-summary">
+          <div><strong data-project-total>0</strong><span>Tổng bài</span></div>
+          <div><strong data-project-visible>0</strong><span>Đang hiển thị</span></div>
+          <div><strong data-project-hidden>0</strong><span>Đang ẩn / bản nháp</span></div>
+        </div>
+        <div class="manager-toolbar">
+          <label class="manager-search">
+            <span>⌕</span>
+            <input type="search" placeholder="Tìm tên công trình, vị trí..." data-project-search>
+          </label>
+          <select data-project-filter aria-label="Lọc trạng thái">
+            <option value="all">Tất cả trạng thái</option>
+            <option value="visible">Đang hiển thị</option>
+            <option value="hidden">Đang ẩn / bản nháp</option>
+          </select>
+        </div>
+        <div class="manager-list" data-project-list></div>
+        <p class="manager-empty" data-project-empty hidden>Không tìm thấy công trình phù hợp.</p>
+      </section>
 
-          <section class="panel">
-            <div class="panel-head"><div><span>02</span><h2>Nội dung bài</h2></div><p>Viết ngắn gọn, tập trung vào công trình thực tế.</p></div>
-            <label class="field">
-              <span>Mô tả ngắn <b>*</b></span>
-              <input name="description" maxlength="180" placeholder="VD: Thi công trọn gói & hoàn thiện" required>
-              <em>Nội dung này xuất hiện ngay trên thẻ công trình.</em>
-            </label>
-            <label class="field">
-              <span>Mô tả chi tiết <b>*</b></span>
-              <textarea name="content" rows="9" maxlength="5000" placeholder="Giới thiệu công trình, giải pháp thi công, vật liệu, quá trình hoàn thiện..." required></textarea>
-            </label>
-          </section>
-
-          <section class="panel">
-            <div class="panel-head"><div><span>03</span><h2>Hình ảnh công trình</h2></div><p>Ảnh đầu tiên sẽ là ảnh đại diện.</p></div>
-            <div class="dropzone" data-dropzone tabindex="0" role="button" aria-label="Chọn hình ảnh công trình">
-              <input type="file" accept="image/jpeg,image/png,image/webp" multiple data-image-input hidden>
-              <div class="drop-icon">＋</div>
-              <h3>Kéo thả ảnh vào đây</h3>
-              <p>hoặc <button type="button" class="text-button" data-pick-images>chọn ảnh từ máy</button></p>
-              <small>JPG, PNG, WebP • tự chuyển WebP • tối đa 20 ảnh</small>
-            </div>
-            <div class="image-progress" data-image-progress hidden></div>
-            <div class="image-grid" data-image-grid></div>
-          </section>
-
-          <section class="panel existing-panel">
-            <div class="panel-head"><div><span>04</span><h2>Công trình hiện có</h2></div><p><b data-project-count>0</b> bài đang hiển thị trên website.</p></div>
-            <div class="existing-list" data-existing-list></div>
-          </section>
+      <section class="editor-section" id="editor">
+        <div class="editor-heading">
+          <div>
+            <p class="eyebrow" data-editor-eyebrow>ĐĂNG BÀI MỚI</p>
+            <h2 data-editor-title>Đăng công trình mới</h2>
+            <p data-editor-copy>Bài mới có thể để hiển thị ngay hoặc lưu ở trạng thái ẩn / bản nháp.</p>
+          </div>
+          <button class="button ghost" type="button" data-cancel-edit hidden>Hủy chỉnh sửa</button>
         </div>
 
-        <aside class="publish-column">
-          <section class="panel publish-card">
-            <div class="publish-cover" data-cover-preview><span>Ảnh đại diện</span></div>
-            <h2>Sẵn sàng đăng?</h2>
-            <ul class="publish-checks">
-              <li data-check-title><i></i> Tên công trình</li>
-              <li data-check-content><i></i> Nội dung bài</li>
-              <li data-check-images><i></i> Ít nhất 1 hình ảnh</li>
-            </ul>
-            <button class="button primary full publish-button" type="submit" data-publish>Đăng công trình</button>
-            <p class="publish-note">Mỗi lần đăng tạo 1 commit trên GitHub. Cloudflare sẽ tự động cập nhật website.</p>
-            <div class="publish-message" data-publish-message aria-live="polite"></div>
-          </section>
-        </aside>
-      </form>
+        <form class="project-form" data-project-form>
+          <div class="form-column">
+            <section class="panel">
+              <div class="panel-head"><div><span>01</span><h2>Thông tin chính</h2></div><p>Các nội dung hiển thị trên thẻ và trang chi tiết.</p></div>
+              <div class="field-grid two">
+                <label class="field field-wide">
+                  <span>Tên công trình <b>*</b></span>
+                  <input name="title" maxlength="120" placeholder="VD: Nhà phố 2 tầng hiện đại tại Bảo Lộc" required>
+                </label>
+                <label class="field field-wide">
+                  <span>Đường dẫn bài <b>*</b></span>
+                  <div class="slug-input"><small>cong-trinh?project=</small><input name="slug" maxlength="100" placeholder="nha-pho-2-tang-bao-loc" required></div>
+                  <em data-slug-help>Không dấu, dùng dấu gạch ngang. Hệ thống sẽ tự tạo theo tiêu đề.</em>
+                </label>
+                <label class="field">
+                  <span>Loại công trình <b>*</b></span>
+                  <select name="type" required>
+                    <option value="nha-pho">Nhà phố</option>
+                    <option value="nha-cap-4">Nhà cấp 4</option>
+                    <option value="biet-thu">Biệt thự</option>
+                    <option value="nha-vuon">Nhà vườn</option>
+                    <option value="nha-chau-au">Nhà châu Âu</option>
+                    <option value="nha-be-tong">Nhà bê tông đúc sẵn</option>
+                    <option value="nha-lap-ghep">Nhà lắp ghép</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Trạng thái hiển thị <b>*</b></span>
+                  <select name="visibility" required>
+                    <option value="visible">Hiển thị trên website</option>
+                    <option value="hidden">Ẩn / bản nháp</option>
+                  </select>
+                  <em>Bài ẩn vẫn còn trong Admin nhưng khách truy cập sẽ không thấy.</em>
+                </label>
+                <label class="field">
+                  <span>Vị trí công trình</span>
+                  <input name="location" maxlength="100" placeholder="Bảo Lộc, Lâm Đồng">
+                </label>
+                <label class="field">
+                  <span>Số tầng</span>
+                  <input name="floors" maxlength="50" placeholder="2 tầng">
+                </label>
+                <label class="field">
+                  <span>Diện tích đất</span>
+                  <input name="area" maxlength="80" placeholder="5 × 20 m (100 m²)">
+                </label>
+                <label class="field">
+                  <span>Diện tích xây dựng</span>
+                  <input name="buildArea" maxlength="80" placeholder="180 m²">
+                </label>
+                <label class="field">
+                  <span>Chi phí xây dựng</span>
+                  <input name="cost" maxlength="100" placeholder="Khoảng 1,2 tỷ đồng">
+                </label>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head"><div><span>02</span><h2>Nội dung bài</h2></div><p>Có thể sửa toàn bộ nội dung các bài cũ.</p></div>
+              <label class="field">
+                <span>Mô tả ngắn <b>*</b></span>
+                <input name="description" maxlength="180" placeholder="VD: Thi công trọn gói & hoàn thiện" required>
+                <em>Nội dung này xuất hiện ngay trên thẻ công trình.</em>
+              </label>
+              <label class="field">
+                <span>Mô tả chi tiết <b>*</b></span>
+                <textarea name="content" rows="9" maxlength="5000" placeholder="Giới thiệu công trình, giải pháp thi công, vật liệu, quá trình hoàn thiện..." required></textarea>
+              </label>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head"><div><span>03</span><h2>Hình ảnh công trình</h2></div><p>Ảnh đầu tiên là ảnh đại diện. Khi sửa bài có thể xóa, thêm và đổi thứ tự ảnh cũ.</p></div>
+              <div class="dropzone" data-dropzone tabindex="0" role="button" aria-label="Chọn hình ảnh công trình">
+                <input type="file" accept="image/jpeg,image/png,image/webp" multiple data-image-input hidden>
+                <div class="drop-icon">＋</div>
+                <h3>Kéo thả ảnh vào đây</h3>
+                <p>hoặc <button type="button" class="text-button" data-pick-images>chọn ảnh từ máy</button></p>
+                <small>JPG, PNG, WebP • tự chuyển WebP • tối đa 20 ảnh</small>
+              </div>
+              <div class="image-progress" data-image-progress hidden></div>
+              <div class="image-grid" data-image-grid></div>
+            </section>
+          </div>
+
+          <aside class="publish-column">
+            <section class="panel publish-card">
+              <div class="publish-cover" data-cover-preview><span>Ảnh đại diện</span></div>
+              <h2 data-publish-heading>Sẵn sàng đăng?</h2>
+              <div class="publish-status" data-publish-status>HIỂN THỊ TRÊN WEBSITE</div>
+              <ul class="publish-checks">
+                <li data-check-title><i></i> Tên công trình</li>
+                <li data-check-content><i></i> Nội dung bài</li>
+                <li data-check-images><i></i> Ít nhất 1 hình ảnh</li>
+              </ul>
+              <button class="button primary full publish-button" type="submit" data-publish>Đăng công trình</button>
+              <button class="button ghost full cancel-edit-card" type="button" data-cancel-edit hidden>Hủy chỉnh sửa</button>
+              <p class="publish-note">Mỗi lần đăng, sửa hoặc ẩn/hiện sẽ tạo 1 commit trên GitHub. Cloudflare tự cập nhật website.</p>
+              <div class="publish-message" data-publish-message aria-live="polite"></div>
+            </section>
+          </aside>
+        </form>
+      </section>
     </main>
   </div>
 

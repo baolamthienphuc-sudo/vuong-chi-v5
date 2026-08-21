@@ -1,105 +1,97 @@
-VƯƠNG CHÍ CONSTRUCTION - HƯỚNG DẪN KÍCH HOẠT /ADMIN
-=====================================================
+VƯƠNG CHÍ CONSTRUCTION - ADMIN CÔNG TRÌNH V2
+==============================================
 
 Trang quản trị:
 https://vuongchi.vn/admin
 
-Cơ chế hoạt động:
-- /admin nhận nội dung + hình ảnh công trình.
-- Trình duyệt tự chuyển ảnh JPG/PNG/WebP sang WebP và giảm kích thước trước khi upload.
-- Cloudflare Pages Function giữ GitHub token ở phía máy chủ, không đưa token ra trình duyệt.
-- Khi bấm "Đăng công trình", hệ thống tạo 01 commit duy nhất gồm file dữ liệu và toàn bộ ảnh.
-- Repo GitHub cập nhật -> Cloudflare Pages tự deploy lại website.
+ADMIN V2 CÓ THỂ:
+- Xem toàn bộ công trình hiện có, kể cả bài đang ẩn.
+- Tìm kiếm công trình.
+- Sửa 16 bài công trình cũ và các bài đăng mới.
+- Sửa tên, loại công trình, vị trí, số tầng, diện tích, chi phí, mô tả.
+- Giữ/xóa/thêm/đổi thứ tự ảnh; ảnh đầu tiên là ảnh đại diện.
+- Ẩn bài thành bản nháp và hiện lại bất cứ lúc nào.
+- Đăng bài mới ở trạng thái Hiển thị hoặc Ẩn / bản nháp.
+- Mỗi thao tác đăng/sửa/ẩn/hiện tạo 01 commit GitHub; Cloudflare tự deploy.
 
 -----------------------------------------------------
-1. ĐƯA CODE MỚI LÊN GITHUB
+1. FILE QUAN TRỌNG
 -----------------------------------------------------
-Chép đè toàn bộ file trong gói cập nhật vào repo:
-https://github.com/baolamthienphuc-sudo/vuong-chi-v5
-
-Sau đó commit/push lên nhánh main.
-
-Các phần mới quan trọng:
-- /admin/index.html
-- /admin/admin.css
-- /admin/admin.js
-- /functions/api/admin/auth.js
-- /functions/api/admin/publish.js
-- /assets/projects-data.js
-- assets/app-v7.js đã được sửa để đọc dữ liệu từ projects-data.js
+/admin/index.html
+/admin/admin.css
+/admin/admin.js
+/functions/api/admin/auth.js
+/functions/api/admin/publish.js
+/functions/api/admin/manage.js
+/assets/projects-data.js
+/assets/app-v7.js
 
 -----------------------------------------------------
-2. TẠO GITHUB TOKEN
+2. CLOUDFLARE SECRETS
 -----------------------------------------------------
-Nên dùng Fine-grained personal access token.
+Trong Cloudflare Pages -> Settings -> Variables and secrets cần có:
 
-Trong GitHub:
-Settings -> Developer settings -> Personal access tokens -> Fine-grained tokens
--> Generate new token
+ADMIN_PASSWORD   (Secret)
+GITHUB_TOKEN     (Secret)
 
-Repository access:
-- Only select repositories
-- Chọn repo: vuong-chi-v5
+GitHub Fine-grained token cần quyền:
+Repository: vuong-chi-v5
+Contents: Read and write
 
-Repository permissions:
-- Contents: Read and write
-
-Không cần cấp quyền Workflows.
-
-Sao chép token sau khi tạo. Không ghi token vào file code.
-
------------------------------------------------------
-3. TẠO SECRET TRÊN CLOUDFLARE PAGES
------------------------------------------------------
-Cloudflare Dashboard -> Workers & Pages -> chọn project Vương Chí
--> Settings -> Variables and Secrets -> Add
-
-Tạo 2 giá trị dạng Secret/Encrypt:
-
-A. ADMIN_PASSWORD
-Giá trị: mật khẩu bạn muốn dùng để đăng nhập vuongchi.vn/admin
-Ví dụ: tự đặt một mật khẩu mạnh, KHÔNG dùng ví dụ trong tài liệu này.
-
-B. GITHUB_TOKEN
-Giá trị: Fine-grained token vừa tạo ở GitHub.
-
-Code đã có mặc định:
+Code mặc định dùng:
 GITHUB_OWNER = baolamthienphuc-sudo
 GITHUB_REPO = vuong-chi-v5
 GITHUB_BRANCH = main
 
-Nếu repo/branch sau này thay đổi, có thể tạo thêm các Environment Variable tương ứng.
+-----------------------------------------------------
+3. SỬA BÀI CŨ
+-----------------------------------------------------
+Mở https://vuongchi.vn/admin
+-> đăng nhập
+-> trong danh sách Quản lý công trình bấm Sửa
+-> form bên dưới tự nạp nội dung + toàn bộ ảnh cũ
+-> sửa nội dung cần thiết
+-> có thể xóa ảnh khỏi bài, thêm ảnh mới hoặc đổi thứ tự
+-> bấm Cập nhật công trình
 
-Sau khi thêm Secret, hãy chạy lại một deployment (Retry deployment hoặc push thêm một commit)
-để Pages Functions nhận các Secret mới.
+Đường dẫn (slug) được khóa khi sửa để tránh làm hỏng link cũ và SEO.
 
 -----------------------------------------------------
-4. SỬ DỤNG
+4. ẨN / HIỆN BÀI
 -----------------------------------------------------
-Mở:
-https://vuongchi.vn/admin
+Cách nhanh:
+Trong danh sách công trình bấm "Ẩn bài" hoặc "Hiện bài".
 
-- Nhập ADMIN_PASSWORD.
-- Điền tên công trình.
-- Slug tự tạo theo tên, có thể sửa lại.
-- Chọn loại công trình.
-- Nhập vị trí, số tầng, diện tích, chi phí nếu có.
-- Nhập mô tả ngắn và mô tả chi tiết.
-- Kéo thả/chọn tối đa 20 ảnh.
-- Ảnh đầu tiên là ảnh đại diện; dùng mũi tên để đổi thứ tự.
-- Bấm "Đăng công trình".
+Hoặc khi sửa bài:
+Trạng thái hiển thị -> chọn:
+- Hiển thị trên website
+- Ẩn / bản nháp
 
-Bài mới được thêm lên đầu danh sách Công trình.
-Ảnh được lưu theo dạng:
-/uploads/projects/<slug>/01.webp
-/uploads/projects/<slug>/02.webp
-...
+Khi bài bị ẩn:
+- Vẫn còn trong Admin.
+- Không xuất hiện ở trang chủ/menu Công trình.
+- Link chi tiết công khai không hiển thị nội dung bài.
+- Có thể hiện lại bất cứ lúc nào.
 
 -----------------------------------------------------
-5. LƯU Ý
+5. ĐĂNG BÀI MỚI
 -----------------------------------------------------
-- /admin chỉ đăng bài thật khi chạy trên Cloudflare Pages. Mở file admin/index.html bằng cách double-click ở máy sẽ không có API Cloudflare.
-- GitHub token không nằm trong admin.js và không được gửi về trình duyệt.
-- Mật khẩu quản trị được trình duyệt giữ trong sessionStorage sau khi đăng nhập và mất khi phiên trình duyệt kết thúc.
-- 16 công trình cũ đã được giữ lại trong assets/projects-data.js.
-- Các link cũ dạng cong-trinh?project=0, 1, 2... vẫn được giữ tương thích.
+Bấm "+ Đăng công trình mới"
+-> nhập thông tin
+-> chọn trạng thái Hiển thị hoặc Ẩn / bản nháp
+-> tải ảnh
+-> bấm Đăng công trình / Lưu bản nháp.
+
+Ảnh JPG/PNG/WebP được trình duyệt tự tối ưu thành WebP trước khi gửi.
+Tối đa 20 ảnh/bài.
+
+-----------------------------------------------------
+6. LƯU Ý
+-----------------------------------------------------
+- 16 bài cũ vẫn giữ nguyên dữ liệu và ảnh, không tự động bị ẩn sau khi cập nhật V2.
+  Bạn chủ động ẩn bài nào chưa muốn khách xem.
+- 139 ảnh cũ vẫn được giữ nguyên.
+- Khi xóa một ảnh cũ trong trình chỉnh sửa, ảnh đó bị gỡ khỏi bài nhưng file ảnh cũ
+  vẫn còn trong repo để tránh xóa nhầm dữ liệu. Website sẽ không còn dùng ảnh đó.
+- Sau khi bấm Đăng/Sửa/Ẩn/Hiện, chờ Cloudflare deploy commit mới để website công khai cập nhật.
+- /admin phải chạy trên Cloudflare Pages để gọi được Pages Functions.
