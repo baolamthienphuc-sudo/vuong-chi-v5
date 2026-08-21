@@ -1,0 +1,5 @@
+/admin/*
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/assets/projects-data.js
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0

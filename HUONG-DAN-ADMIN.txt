@@ -95,3 +95,9 @@ Tối đa 20 ảnh/bài.
   vẫn còn trong repo để tránh xóa nhầm dữ liệu. Website sẽ không còn dùng ảnh đó.
 - Sau khi bấm Đăng/Sửa/Ẩn/Hiện, chờ Cloudflare deploy commit mới để website công khai cập nhật.
 - /admin phải chạy trên Cloudflare Pages để gọi được Pages Functions.
+
+
+=== V2.1 FIX ===
+- Sua loi trinh duyet giu cache admin.js/admin.css cu lam danh sach hien 0 bai.
+- Bo sung functions/api/admin/manage.js va publish.js V2 vao goi update.
+- Them _headers de du lieu cong trinh khong bi cache cu sau khi sua/an/hien.
