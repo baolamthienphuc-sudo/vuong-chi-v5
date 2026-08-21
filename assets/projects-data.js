@@ -33,7 +33,7 @@ window.VC_PROJECTS = [
   {
     "legacyIndex": 1,
     "slug": "villa-thuc-te-quang-tri",
-    "title": "Villa thực tế Quảng Trị",
+    "title": "Villa thực tế",
     "type": "biet-thu",
     "category": "Biệt thự",
     "location": "Quảng Trị",
@@ -42,14 +42,16 @@ window.VC_PROJECTS = [
     "buildArea": "Đang cập nhật",
     "cost": "Đang cập nhật",
     "description": "Thi công & hoàn thiện",
-    "content": "Thi công & hoàn thiện. Hình ảnh thực tế của Villa thực tế Quảng Trị do Vương Chí ghi nhận trong quá trình triển khai và hoàn thiện, thể hiện qua các góc nhìn mặt tiền, công năng và chi tiết hoàn thiện.",
+    "content": "Thi công & hoàn thiện. Hình ảnh thực tế của Villa thực tế do Vương Chí ghi nhận trong quá trình triển khai và hoàn thiện, thể hiện qua các góc nhìn mặt tiền, công năng và chi tiết hoàn thiện.",
     "images": [
       "gallery-02-thuc-te-cs-villa-quang-tri/thuc-te-cs-villa-quang-tri-1.webp",
       "gallery-02-thuc-te-cs-villa-quang-tri/thuc-te-cs-villa-quang-tri-4.webp",
       "gallery-02-thuc-te-cs-villa-quang-tri/thuc-te-cs-villa-quang-tri-3.webp",
       "gallery-02-thuc-te-cs-villa-quang-tri/thuc-te-cs-villa-quang-tri-17.webp",
       "gallery-02-thuc-te-cs-villa-quang-tri/thuc-te-cs-villa-quang-tri-12.webp"
-    ]
+    ],
+    "hidden": false,
+    "updatedAt": "2026-08-21T04:05:01.398Z"
   },
   {
     "legacyIndex": 2,
