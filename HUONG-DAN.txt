@@ -1,8 +1,0 @@
-VUONG CHI V8.1
-
-1. Giai nen toan bo noi dung vao F:\webnhap\vuong-chi-v5
-2. Chay APPLY-FIX-V8.1.bat
-3. Mo index.html va du-an.html de kiem tra local.
-4. Neu dung thi git add / commit / push.
-
-V8.1 sua loi kiem tra UTF-8 gia cua V8. V8 da doi CSS thanh cong nhung phep kiem tra qua chat vi doi chu 'Xay Dung' dung kieu viet hoa/cu phap cu the.

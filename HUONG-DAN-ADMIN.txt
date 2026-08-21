@@ -1,0 +1,105 @@
+VƯƠNG CHÍ CONSTRUCTION - HƯỚNG DẪN KÍCH HOẠT /ADMIN
+=====================================================
+
+Trang quản trị:
+https://vuongchi.vn/admin
+
+Cơ chế hoạt động:
+- /admin nhận nội dung + hình ảnh công trình.
+- Trình duyệt tự chuyển ảnh JPG/PNG/WebP sang WebP và giảm kích thước trước khi upload.
+- Cloudflare Pages Function giữ GitHub token ở phía máy chủ, không đưa token ra trình duyệt.
+- Khi bấm "Đăng công trình", hệ thống tạo 01 commit duy nhất gồm file dữ liệu và toàn bộ ảnh.
+- Repo GitHub cập nhật -> Cloudflare Pages tự deploy lại website.
+
+-----------------------------------------------------
+1. ĐƯA CODE MỚI LÊN GITHUB
+-----------------------------------------------------
+Chép đè toàn bộ file trong gói cập nhật vào repo:
+https://github.com/baolamthienphuc-sudo/vuong-chi-v5
+
+Sau đó commit/push lên nhánh main.
+
+Các phần mới quan trọng:
+- /admin/index.html
+- /admin/admin.css
+- /admin/admin.js
+- /functions/api/admin/auth.js
+- /functions/api/admin/publish.js
+- /assets/projects-data.js
+- assets/app-v7.js đã được sửa để đọc dữ liệu từ projects-data.js
+
+-----------------------------------------------------
+2. TẠO GITHUB TOKEN
+-----------------------------------------------------
+Nên dùng Fine-grained personal access token.
+
+Trong GitHub:
+Settings -> Developer settings -> Personal access tokens -> Fine-grained tokens
+-> Generate new token
+
+Repository access:
+- Only select repositories
+- Chọn repo: vuong-chi-v5
+
+Repository permissions:
+- Contents: Read and write
+
+Không cần cấp quyền Workflows.
+
+Sao chép token sau khi tạo. Không ghi token vào file code.
+
+-----------------------------------------------------
+3. TẠO SECRET TRÊN CLOUDFLARE PAGES
+-----------------------------------------------------
+Cloudflare Dashboard -> Workers & Pages -> chọn project Vương Chí
+-> Settings -> Variables and Secrets -> Add
+
+Tạo 2 giá trị dạng Secret/Encrypt:
+
+A. ADMIN_PASSWORD
+Giá trị: mật khẩu bạn muốn dùng để đăng nhập vuongchi.vn/admin
+Ví dụ: tự đặt một mật khẩu mạnh, KHÔNG dùng ví dụ trong tài liệu này.
+
+B. GITHUB_TOKEN
+Giá trị: Fine-grained token vừa tạo ở GitHub.
+
+Code đã có mặc định:
+GITHUB_OWNER = baolamthienphuc-sudo
+GITHUB_REPO = vuong-chi-v5
+GITHUB_BRANCH = main
+
+Nếu repo/branch sau này thay đổi, có thể tạo thêm các Environment Variable tương ứng.
+
+Sau khi thêm Secret, hãy chạy lại một deployment (Retry deployment hoặc push thêm một commit)
+để Pages Functions nhận các Secret mới.
+
+-----------------------------------------------------
+4. SỬ DỤNG
+-----------------------------------------------------
+Mở:
+https://vuongchi.vn/admin
+
+- Nhập ADMIN_PASSWORD.
+- Điền tên công trình.
+- Slug tự tạo theo tên, có thể sửa lại.
+- Chọn loại công trình.
+- Nhập vị trí, số tầng, diện tích, chi phí nếu có.
+- Nhập mô tả ngắn và mô tả chi tiết.
+- Kéo thả/chọn tối đa 20 ảnh.
+- Ảnh đầu tiên là ảnh đại diện; dùng mũi tên để đổi thứ tự.
+- Bấm "Đăng công trình".
+
+Bài mới được thêm lên đầu danh sách Công trình.
+Ảnh được lưu theo dạng:
+/uploads/projects/<slug>/01.webp
+/uploads/projects/<slug>/02.webp
+...
+
+-----------------------------------------------------
+5. LƯU Ý
+-----------------------------------------------------
+- /admin chỉ đăng bài thật khi chạy trên Cloudflare Pages. Mở file admin/index.html bằng cách double-click ở máy sẽ không có API Cloudflare.
+- GitHub token không nằm trong admin.js và không được gửi về trình duyệt.
+- Mật khẩu quản trị được trình duyệt giữ trong sessionStorage sau khi đăng nhập và mất khi phiên trình duyệt kết thúc.
+- 16 công trình cũ đã được giữ lại trong assets/projects-data.js.
+- Các link cũ dạng cong-trinh?project=0, 1, 2... vẫn được giữ tương thích.

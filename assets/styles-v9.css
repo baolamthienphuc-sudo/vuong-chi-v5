@@ -1520,3 +1520,8 @@ body,
     box-shadow:0 8px 22px rgba(7,22,36,.06);
   }
 }
+
+/* Admin-driven project content */
+.project-article-copy p{color:#59625d;font-size:15px;line-height:1.75;}
+.project-detail-actions a{color:#a46d00;font-size:13px;font-weight:700;text-decoration:none;}
+@media (max-width:860px){.project-detail-actions a{font-size:10px;text-align:center;}}
