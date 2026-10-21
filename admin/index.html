@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>Quản lý công trình | Vương Chí Construction</title>
+  <title>Quản lý bài đăng | Vương Chí Construction</title>
   <link rel="icon" href="../assets/images/logo.png">
-  <link rel="stylesheet" href="admin.css?v=20260821-v21">
+  <link rel="stylesheet" href="/admin/admin.css?v=20261021-v3">
 </head>
 <body>
   <section class="login-screen" data-login-screen>
@@ -17,10 +17,14 @@
       </a>
       <div class="login-copy">
         <p class="eyebrow">KHU VỰC QUẢN TRỊ</p>
-        <h1>Quản lý công trình</h1>
-        <p>Đăng, chỉnh sửa và ẩn/hiện công trình trên website.</p>
+        <h1>Quản lý bài đăng</h1>
+        <p>Đăng bài và quản lý công trình ngay trên website.</p>
       </div>
       <form data-login-form>
+        <label class="field">
+          <span>Tên đăng nhập</span>
+          <input name="username" autocomplete="username" value="daongocvuongchi" maxlength="100" required>
+        </label>
         <label class="field">
           <span>Mật khẩu quản trị</span>
           <input type="password" name="password" autocomplete="current-password" placeholder="Nhập mật khẩu" required autofocus>
@@ -28,7 +32,7 @@
         <button class="button primary full" type="submit">Đăng nhập</button>
         <p class="form-message" data-login-message aria-live="polite"></p>
       </form>
-      <p class="login-help">Mật khẩu và GitHub token không nằm trong mã nguồn website. Chúng được lưu bằng Cloudflare Secret.</p>
+      <p class="login-help">Dùng tài khoản quản trị được cấp để đăng bài, sửa nội dung và quản lý hình ảnh.</p>
     </div>
   </section>
 
@@ -39,13 +43,13 @@
         <span><b>VƯƠNG CHÍ</b><small>ADMIN</small></span>
       </a>
       <nav class="sidebar-nav">
-        <a class="active" href="#manage"><span>▦</span> Quản lý công trình</a>
-        <a href="#editor" data-new-project><span>＋</span> Đăng công trình mới</a>
+        <a class="active" href="#manage"><span>▦</span> Quản lý bài đăng</a>
+        <a href="#editor" data-new-project><span>＋</span> Đăng bài</a>
         <a href="../du-an.html" target="_blank" rel="noopener"><span>↗</span> Xem trang công trình</a>
         <a href="../index.html" target="_blank" rel="noopener"><span>⌂</span> Xem website</a>
       </nav>
       <div class="sidebar-bottom">
-        <div class="repo-status"><i></i><span>GitHub → Cloudflare</span></div>
+        <div class="repo-status"><i></i><span>daongocvuongchi</span></div>
         <button class="logout-button" type="button" data-logout>Đăng xuất</button>
       </div>
     </aside>
@@ -54,13 +58,14 @@
       <header class="admin-header">
         <div>
           <p class="eyebrow">NỘI DUNG WEBSITE</p>
-          <h1>Quản lý công trình</h1>
-          <p>Chỉnh sửa các bài hiện có, ẩn bản nháp khi chưa sẵn sàng và đăng công trình mới.</p>
+          <h1>Quản lý bài đăng</h1>
+          <p>Đăng bài mới, sửa nội dung, ẩn bài hoặc xóa bài không còn sử dụng.</p>
         </div>
-        <button class="button primary" type="button" data-new-project>＋ Đăng công trình mới</button>
+        <button class="button primary" type="button" data-new-project>＋ Đăng bài</button>
       </header>
 
       <section class="manager-panel panel" id="manage">
+        <div class="manager-feedback" data-manager-message role="status" aria-live="polite" hidden></div>
         <div class="manager-summary">
           <div><strong data-project-total>0</strong><span>Tổng bài</span></div>
           <div><strong data-project-visible>0</strong><span>Đang hiển thị</span></div>
@@ -76,12 +81,13 @@
             <option value="visible">Đang hiển thị</option>
             <option value="hidden">Đang ẩn / bản nháp</option>
           </select>
+          <button class="button ghost" type="button" data-refresh-projects>Tải lại</button>
         </div>
         <div class="manager-list" data-project-list></div>
         <p class="manager-empty" data-project-empty hidden>Không tìm thấy công trình phù hợp.</p>
       </section>
 
-      <section class="editor-section" id="editor">
+      <section class="editor-section" id="editor" hidden>
         <div class="editor-heading">
           <div>
             <p class="eyebrow" data-editor-eyebrow>ĐĂNG BÀI MỚI</p>
@@ -185,9 +191,9 @@
                 <li data-check-content><i></i> Nội dung bài</li>
                 <li data-check-images><i></i> Ít nhất 1 hình ảnh</li>
               </ul>
-              <button class="button primary full publish-button" type="submit" data-publish>Đăng công trình</button>
+              <button class="button primary full publish-button" type="submit" data-publish>Đăng bài</button>
               <button class="button ghost full cancel-edit-card" type="button" data-cancel-edit hidden>Hủy chỉnh sửa</button>
-              <p class="publish-note">Mỗi lần đăng, sửa hoặc ẩn/hiện sẽ tạo 1 commit trên GitHub. Cloudflare tự cập nhật website.</p>
+              <p class="publish-note">Sau khi lưu, website cần một ít thời gian để cập nhật. Bản nháp không xuất hiện trong danh sách công khai.</p>
               <div class="publish-message" data-publish-message aria-live="polite"></div>
             </section>
           </aside>
@@ -196,7 +202,24 @@
     </main>
   </div>
 
-  <script src="../assets/projects-data.js?v=20260821-v21"></script>
-  <script src="admin.js?v=20260821-v21"></script>
+  <dialog class="delete-dialog" data-delete-dialog aria-labelledby="delete-heading">
+    <form data-delete-form>
+      <p class="eyebrow">XÓA BÀI ĐĂNG</p>
+      <h2 id="delete-heading">Xóa vĩnh viễn bài này?</h2>
+      <p data-delete-title></p>
+      <p>Bài sẽ bị xóa khỏi kho nội dung và không thể khôi phục từ trang quản trị. Website công khai cập nhật sau khi triển khai xong.</p>
+      <label class="field">
+        <span>Nhập đường dẫn bài để xác nhận:</span>
+        <code data-delete-slug></code>
+        <input name="confirmSlug" autocomplete="off" spellcheck="false" required aria-label="Đường dẫn bài cần xóa">
+      </label>
+      <p class="form-message error" data-delete-message aria-live="polite"></p>
+      <div class="dialog-actions">
+        <button class="button ghost" type="button" data-cancel-delete>Giữ lại bài</button>
+        <button class="button danger" type="submit" data-confirm-delete>Xóa vĩnh viễn</button>
+      </div>
+    </form>
+  </dialog>
+  <script src="/admin/admin.js?v=20261021-v3"></script>
 </body>
 </html>

@@ -1,5 +1,9 @@
 /admin/*
   Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+  X-Robots-Tag: noindex, nofollow, noarchive
+  X-Frame-Options: DENY
+  Referrer-Policy: same-origin
+  Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; form-action 'self'
 
 /assets/projects-data.js
   Cache-Control: no-store, no-cache, must-revalidate, max-age=0

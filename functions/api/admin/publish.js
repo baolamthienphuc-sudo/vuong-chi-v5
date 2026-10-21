@@ -1,4 +1,5 @@
-const API_VERSION = '2026-03-10';
+import { requireAdmin } from '../../../lib/admin-session.js';
+import { githubClient } from '../../../lib/github.js';
 const MAX_IMAGES = 20;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const MAX_TOTAL_IMAGE_BYTES = 50 * 1024 * 1024;
@@ -21,19 +22,6 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), {
     'x-content-type-options': 'nosniff'
   }
 });
-
-const secureEqual = async (a, b) => {
-  const encoder = new TextEncoder();
-  const [ha, hb] = await Promise.all([
-    crypto.subtle.digest('SHA-256', encoder.encode(String(a || ''))),
-    crypto.subtle.digest('SHA-256', encoder.encode(String(b || '')))
-  ]);
-  const aa = new Uint8Array(ha);
-  const bb = new Uint8Array(hb);
-  let diff = aa.length ^ bb.length;
-  for (let i = 0; i < Math.max(aa.length, bb.length); i++) diff |= (aa[i] || 0) ^ (bb[i] || 0);
-  return diff === 0;
-};
 
 const cleanText = (value, max = 500) => String(value || '').trim().replace(/\u0000/g, '').slice(0, max);
 const cleanSlug = value => cleanText(value, 100).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
@@ -66,10 +54,9 @@ const imageExtension = type => type === 'image/png' ? 'png' : type === 'image/jp
 
 export async function onRequestPost(context) {
   try {
-    if (!context.env.ADMIN_PASSWORD) return json({ error: 'Chưa cấu hình ADMIN_PASSWORD trong Cloudflare Secrets.' }, 503);
-    if (!context.env.GITHUB_TOKEN) return json({ error: 'Chưa cấu hình GITHUB_TOKEN trong Cloudflare Secrets.' }, 503);
-    const suppliedPassword = context.request.headers.get('X-Admin-Password') || '';
-    if (!(await secureEqual(suppliedPassword, context.env.ADMIN_PASSWORD))) return json({ error: 'Mật khẩu quản trị không đúng.' }, 401);
+    const denied = await requireAdmin(context);
+    if (denied) return denied;
+    if (!context.env.GITHUB_TOKEN) return json({ error: 'Chưa kết nối kho nội dung. Vui lòng cấu hình GitHub token trên Cloudflare.' }, 503);
 
     const form = await context.request.formData();
     const rawProject = form.get('project');
@@ -96,38 +83,16 @@ export async function onRequestPost(context) {
     }
     if (totalBytes > MAX_TOTAL_IMAGE_BYTES) return json({ error: 'Tổng dung lượng ảnh vượt quá 50 MB.' }, 400);
 
-    const owner = context.env.GITHUB_OWNER || 'baolamthienphuc-sudo';
-    const repo = context.env.GITHUB_REPO || 'vuong-chi-v5';
     const branch = context.env.GITHUB_BRANCH || 'main';
-    const token = context.env.GITHUB_TOKEN;
-    const base = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
+    const gh = githubClient(context.env);
 
-    const gh = async (path, init = {}) => {
-      const response = await fetch(`${base}${path}`, {
-        ...init,
-        headers: {
-          'Accept': 'application/vnd.github+json',
-          'Authorization': `Bearer ${token}`,
-          'X-GitHub-Api-Version': API_VERSION,
-          'User-Agent': 'vuong-chi-admin',
-          ...(init.headers || {})
-        }
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        const detail = data?.message ? `GitHub: ${data.message}` : `GitHub HTTP ${response.status}`;
-        throw new Error(detail);
-      }
-      return data;
-    };
-
-    const [ref, currentFile] = await Promise.all([
-      gh(`/git/ref/heads/${encodeURIComponent(branch)}`),
-      gh(`/contents/assets/projects-data.js?ref=${encodeURIComponent(branch)}`)
-    ]);
+    const ref = await gh(`/git/ref/heads/${encodeURIComponent(branch)}`);
     const headSha = ref?.object?.sha;
     if (!headSha) throw new Error('Không đọc được commit hiện tại của GitHub.');
-    const currentCommit = await gh(`/git/commits/${headSha}`);
+    const [currentCommit, currentFile] = await Promise.all([
+      gh(`/git/commits/${headSha}`),
+      gh(`/contents/assets/projects-data.js?ref=${encodeURIComponent(headSha)}`)
+    ]);
     const baseTree = currentCommit?.tree?.sha;
     if (!baseTree) throw new Error('Không đọc được Git tree hiện tại.');
 
@@ -204,7 +169,7 @@ export async function onRequestPost(context) {
     });
   } catch (error) {
     console.error(error);
-    return json({ error: error?.message || 'Lỗi máy chủ khi đăng công trình.' }, 500);
+    return json({ error: error?.message || 'Lỗi máy chủ khi đăng công trình.' }, error?.status || 500);
   }
 }
 

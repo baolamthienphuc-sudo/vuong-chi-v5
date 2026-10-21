@@ -39,13 +39,8 @@
     'nha-lap-ghep': 'Nhà lắp ghép'
   };
 
-  const projects = (Array.isArray(window.VC_PROJECTS) ? window.VC_PROJECTS : []).map(project => ({
-    ...project,
-    hidden: project.hidden === true,
-    images: Array.isArray(project.images) ? [...project.images] : []
-  }));
+  const projects = [];
 
-  let adminPassword = '';
   let slugTouched = false;
   let selectedImages = [];
   let editingSlug = '';
@@ -65,49 +60,77 @@
     el.className = `${el === publishMessage ? 'publish-message' : 'form-message'}${type ? ` ${type}` : ''}`;
   };
 
-  const auth = async password => {
-    const response = await fetch('../api/admin/auth', {
-      method: 'POST',
-      headers: { 'X-Admin-Password': password }
-    });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || (response.status === 401 ? 'Mật khẩu không đúng.' : 'Không kết nối được API quản trị.'));
-    }
-    return response.json();
+  const managerMessage = document.querySelector('[data-manager-message]');
+  const deleteDialog = document.querySelector('[data-delete-dialog]');
+  const deleteForm = document.querySelector('[data-delete-form]');
+  let deletingSlug = '';
+
+  // Remove the old plaintext password saved by previous admin versions.
+  try { sessionStorage.removeItem('vc-admin-password'); } catch {}
+
+  const showManagerMessage = (message, type = '') => {
+    managerMessage.textContent = message;
+    managerMessage.className = 'manager-feedback' + (type ? ' ' + type : '');
+    managerMessage.hidden = !message;
   };
 
-  const enterAdmin = password => {
-    adminPassword = password;
-    sessionStorage.setItem('vc-admin-password', password);
+  const returnToLogin = message => {
+    loginScreen.hidden = false;
+    adminShell.hidden = true;
+    if (deleteDialog.open) deleteDialog.close();
+    loginForm.elements.namedItem('password').value = '';
+    showMessage(loginMessage, message, 'error');
+  };
+
+  const api = async (path, init = {}) => {
+    const response = await fetch('/api/admin/' + path, { credentials: 'same-origin', cache: 'no-store', ...init });
+    const data = await response.json().catch(() => null);
+    if (response.status === 401 && path !== 'auth') returnToLogin('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+    if (!response.ok || !data?.ok) throw new Error(data?.error || 'Không kết nối được dịch vụ quản trị. Vui lòng thử lại.');
+    return data;
+  };
+
+  const refreshProjects = async () => {
+    showManagerMessage('Đang tải danh sách bài đăng...');
+    try {
+      const data = await api('manage');
+      projects.splice(0, projects.length, ...data.projects);
+      renderManager();
+      showManagerMessage('');
+    } catch (error) {
+      showManagerMessage(error.message, 'error');
+    }
+  };
+
+  const enterAdmin = async () => {
     loginScreen.hidden = true;
     adminShell.hidden = false;
-    renderManager();
+    loginForm.elements.namedItem('password').value = '';
     updateChecks();
     updatePublishMode();
+    await refreshProjects();
   };
 
   const tryStoredLogin = async () => {
-    const stored = sessionStorage.getItem('vc-admin-password');
-    if (!stored) return;
     try {
-      await auth(stored);
-      enterAdmin(stored);
-    } catch {
-      sessionStorage.removeItem('vc-admin-password');
-    }
+      await api('auth');
+      await enterAdmin();
+    } catch { /* No active session: keep the login form visible. */ }
   };
 
   loginForm?.addEventListener('submit', async event => {
     event.preventDefault();
     const button = loginForm.querySelector('button[type="submit"]');
-    const password = new FormData(loginForm).get('password')?.toString() || '';
+    const fields = new FormData(loginForm);
     showMessage(loginMessage, 'Đang kiểm tra...');
     button.disabled = true;
     try {
-      await auth(password);
-      showMessage(loginMessage, 'Đăng nhập thành công.', 'success');
-      enterAdmin(password);
+      await api('auth', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: fields.get('username'), password: fields.get('password') })
+      });
+      showMessage(loginMessage, '');
+      await enterAdmin();
     } catch (error) {
       showMessage(loginMessage, error.message, 'error');
     } finally {
@@ -115,10 +138,15 @@
     }
   });
 
-  document.querySelector('[data-logout]')?.addEventListener('click', () => {
-    sessionStorage.removeItem('vc-admin-password');
-    location.reload();
+  document.querySelector('[data-logout]')?.addEventListener('click', async () => {
+    try {
+      await api('auth', { method: 'DELETE' });
+      location.reload();
+    } catch (error) {
+      showManagerMessage(error.message, 'error');
+    }
   });
+  document.querySelector('[data-refresh-projects]')?.addEventListener('click', refreshProjects);
 
   const renderManager = () => {
     const total = projects.length;
@@ -155,6 +183,7 @@
         </div>
         <div class="manager-actions">
           <button type="button" class="mini-button edit" data-edit-index="${index}">Sửa</button>
+          <button type="button" class="mini-button delete" data-delete-index="${index}">Xóa</button>
           <button type="button" class="mini-button visibility ${project.hidden ? 'show' : 'hide'}" data-visibility-index="${index}">${project.hidden ? 'Hiện bài' : 'Ẩn bài'}</button>
           ${project.hidden ? '<span class="mini-muted">Không hiển thị công khai</span>' : `<a class="mini-button view" href="${href}" target="_blank" rel="noopener">Xem ↗</a>`}
         </div>
@@ -179,6 +208,7 @@
   };
 
   const setEditorMode = project => {
+    document.querySelector('#editor').hidden = false;
     const isEditing = Boolean(project);
     if (editorEyebrow) editorEyebrow.textContent = isEditing ? 'CHỈNH SỬA BÀI' : 'ĐĂNG BÀI MỚI';
     if (editorTitle) editorTitle.textContent = isEditing ? `Sửa: ${project.title || 'Công trình'}` : 'Đăng công trình mới';
@@ -238,6 +268,19 @@
   cancelEditButtons.forEach(button => button.addEventListener('click', () => resetForm(true)));
 
   projectList?.addEventListener('click', async event => {
+    const deleteButton = event.target.closest('[data-delete-index]');
+    if (deleteButton) {
+      const project = projects[Number(deleteButton.dataset.deleteIndex)];
+      if (!project) return;
+      deletingSlug = project.slug;
+      deleteForm.reset();
+      document.querySelector('[data-delete-title]').textContent = project.title;
+      document.querySelector('[data-delete-slug]').textContent = project.slug;
+      document.querySelector('[data-delete-message]').textContent = '';
+      deleteDialog.showModal();
+      deleteForm.elements.namedItem('confirmSlug').focus();
+      return;
+    }
     const editButton = event.target.closest('[data-edit-index]');
     if (editButton) {
       loadProjectForEdit(Number(editButton.dataset.editIndex));
@@ -257,15 +300,10 @@
       formData.append('action', 'visibility');
       formData.append('slug', project.slug);
       formData.append('hidden', String(nextHidden));
-      const response = await fetch('../api/admin/manage', {
-        method: 'POST',
-        headers: { 'X-Admin-Password': adminPassword },
-        body: formData
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || 'Không thể đổi trạng thái bài.');
+      const data = await api('manage', { method: 'POST', body: formData });
       project.hidden = nextHidden;
       project.updatedAt = data.project?.updatedAt || new Date().toISOString();
+      showManagerMessage('Đã lưu trạng thái bài. Website sẽ cập nhật sau khi triển khai xong.', 'success');
       renderManager();
       if (editingSlug === project.slug) {
         setFormValue('visibility', nextHidden ? 'hidden' : 'visible');
@@ -274,6 +312,40 @@
     } catch (error) {
       alert(error.message);
       renderManager();
+    }
+  });
+
+  document.querySelector('[data-cancel-delete]').addEventListener('click', () => deleteDialog.close());
+  deleteForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    const message = document.querySelector('[data-delete-message]');
+    const confirmSlug = deleteForm.elements.namedItem('confirmSlug').value;
+    if (confirmSlug !== deletingSlug) {
+      message.textContent = 'Đường dẫn chưa khớp. Bài chưa bị xóa.';
+      return;
+    }
+    const button = document.querySelector('[data-confirm-delete]');
+    button.disabled = true;
+    message.textContent = 'Đang xóa bài...';
+    try {
+      const form = new FormData();
+      form.set('action', 'delete');
+      form.set('slug', deletingSlug);
+      form.set('confirmSlug', confirmSlug);
+      await api('manage', { method: 'POST', body: form });
+      const index = findProjectIndexBySlug(deletingSlug);
+      if (index >= 0) projects.splice(index, 1);
+      if (editingSlug === deletingSlug) {
+        resetForm(false);
+        document.querySelector('#editor').hidden = true;
+      }
+      renderManager();
+      deleteDialog.close();
+      showManagerMessage('Đã xóa bài khỏi kho nội dung. Website sẽ cập nhật sau khi triển khai xong.', 'success');
+    } catch (error) {
+      message.textContent = error.message;
+    } finally {
+      button.disabled = false;
     }
   });
 
@@ -428,7 +500,7 @@
       if (publishButton && !publishButton.disabled) publishButton.textContent = 'Cập nhật công trình';
     } else {
       if (publishHeading) publishHeading.textContent = hidden ? 'Lưu bản nháp?' : 'Sẵn sàng đăng?';
-      if (publishButton && !publishButton.disabled) publishButton.textContent = hidden ? 'Lưu bản nháp' : 'Đăng công trình';
+      if (publishButton && !publishButton.disabled) publishButton.textContent = hidden ? 'Lưu bản nháp' : 'Đăng bài';
     }
   }
 
@@ -446,13 +518,7 @@
     selectedImages.forEach((item, index) => {
       if (item.kind === 'new') formData.append('images', item.file, `${String(index + 1).padStart(2, '0')}.webp`);
     });
-    const response = await fetch('../api/admin/publish', {
-      method: 'POST',
-      headers: { 'X-Admin-Password': adminPassword },
-      body: formData
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'Không thể đăng công trình.');
+    const data = await api('publish', { method: 'POST', body: formData });
     if (data.project) {
       projects.unshift({ ...data.project, hidden: data.project.hidden === true, images: [...(data.project.images || [])] });
       renderManager();
@@ -474,13 +540,7 @@
     formData.append('project', JSON.stringify(fields));
     formData.append('imageOrder', JSON.stringify(order));
     newFiles.forEach((file, index) => formData.append('images', file, `${String(index + 1).padStart(2, '0')}.webp`));
-    const response = await fetch('../api/admin/manage', {
-      method: 'POST',
-      headers: { 'X-Admin-Password': adminPassword },
-      body: formData
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'Không thể cập nhật công trình.');
+    const data = await api('manage', { method: 'POST', body: formData });
     if (data.project) {
       const index = findProjectIndexBySlug(editingSlug);
       if (index >= 0) projects[index] = { ...data.project, hidden: data.project.hidden === true, images: [...(data.project.images || [])] };
@@ -504,7 +564,7 @@
     const fields = buildProjectFields();
     const isEditing = Boolean(editingSlug);
     publishButton.disabled = true;
-    publishButton.textContent = isEditing ? 'Đang cập nhật GitHub...' : (fields.hidden ? 'Đang lưu bản nháp...' : 'Đang đăng lên GitHub...');
+    publishButton.textContent = isEditing ? 'Đang cập nhật...' : (fields.hidden ? 'Đang lưu bản nháp...' : 'Đang đăng bài...');
     showMessage(publishMessage, isEditing
       ? `Đang lưu nội dung và ${selectedImages.length} ảnh...`
       : `Đang gửi ${selectedImages.length} ảnh và tạo bài...`);
@@ -516,7 +576,7 @@
       publishMessage.className = 'publish-message success';
       publishMessage.innerHTML = hidden
         ? `Đã lưu thành công ở trạng thái <b>Ẩn / bản nháp</b>. Bài không xuất hiện với khách truy cập.<br><button type="button" class="text-button" data-back-manager>Quay lại danh sách công trình</button>`
-        : `Đã tạo commit thành công. Cloudflare sẽ tự deploy bản mới.<br><a href="${url}" target="_blank" rel="noopener">Mở bài công trình ↗</a> &nbsp;•&nbsp; <button type="button" class="text-button" data-back-manager>Quay lại danh sách</button>`;
+        : `Đã lưu bài thành công. Website sẽ cập nhật sau khi triển khai xong.<br><a href="${url}" target="_blank" rel="noopener">Mở bài công trình ↗</a> &nbsp;•&nbsp; <button type="button" class="text-button" data-back-manager>Quay lại danh sách</button>`;
       publishMessage.querySelector('[data-back-manager]')?.addEventListener('click', () => {
         document.querySelector('#manage')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
