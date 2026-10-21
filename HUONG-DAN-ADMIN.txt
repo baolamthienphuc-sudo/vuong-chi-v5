@@ -1,146 +1,59 @@
-VƯƠNG CHÍ CONSTRUCTION - ADMIN BÀI ĐĂNG V3
+VƯƠNG CHÍ — QUẢN TRỊ TRỰC TIẾP TRÊN WEBSITE
 ==============================================
 
-Trang quản trị:
-https://vuongchi.vn/admin
+1. ĐĂNG NHẬP
+Mở https://vuongchi.vn/admin/
+Tên đăng nhập: daongocvuongchi
+Dùng mật khẩu quản trị hiện tại. Đăng nhập thành công sẽ tự trở về website.
+Khách chưa đăng nhập có liên kết Đăng nhập quản trị ở cuối trang.
 
-ADMIN V3 CÓ THỂ:
-- Xem toàn bộ công trình hiện có, kể cả bài đang ẩn.
-- Tìm kiếm và lọc bài đăng theo trạng thái.
-- Xóa vĩnh viễn bài khỏi kho nội dung, phải nhập đúng đường dẫn bài để xác nhận.
-- Sửa 16 bài công trình cũ và các bài đăng mới.
-- Sửa tên, loại công trình, vị trí, số tầng, diện tích, chi phí, mô tả.
-- Giữ/xóa/thêm/đổi thứ tự ảnh; ảnh đầu tiên là ảnh đại diện.
-- Ẩn bài thành bản nháp và hiện lại bất cứ lúc nào.
-- Đăng bài mới ở trạng thái Hiển thị hoặc Ẩn / bản nháp.
-- Mỗi thao tác đăng/sửa/ẩn/hiện tạo 01 commit GitHub; Cloudflare tự deploy.
+2. QUẢN LÝ NGAY KHI XEM WEBSITE
+Thanh quản trị trên đầu trang có: Đăng bài, Quản lý bài, Đổi mật khẩu, Đăng xuất.
+Mỗi công trình có Sửa bài, Ẩn bài / Hiện bài và Xóa.
+Trang chi tiết công trình cũng có các nút tương tự.
+Bấm Sửa bài hoặc Đăng bài: form mở ngay trên website, không cần rời trang.
+Lưu xong: cửa sổ đóng, website tải lại và hiển thị dữ liệu vừa lưu ngay.
+Không tạo commit GitHub và không chờ Cloudflare xây dựng lại sau mỗi lần sửa bài.
 
------------------------------------------------------
-1. FILE QUAN TRỌNG
------------------------------------------------------
-/admin/index.html
-/admin/admin.css
-/admin/admin.js
-/functions/api/admin/auth.js
-/functions/api/admin/publish.js
-/functions/api/admin/manage.js
-/assets/projects-data.js
-/assets/app-v7.js
+3. BÀI ẨN
+Admin vẫn xem được bài ẩn, có nhãn Đang ẩn. Khách chưa đăng nhập không thấy bài ẩn.
+Ảnh mới của bài ẩn cũng chỉ truy cập được khi có phiên quản trị.
+Bấm Hiện bài để công khai lại.
 
------------------------------------------------------
-2. CLOUDFLARE SECRETS
------------------------------------------------------
-Trong Cloudflare Pages -> Settings -> Variables and secrets cần có:
+4. XÓA VĨNH VIỄN
+Nhập lại chính xác đường dẫn bài trong hộp xác nhận để xóa.
+Bài bị xóa khỏi dữ liệu đang dùng; không có thùng rác trong Admin.
+Ảnh tải riêng cho bài đó qua hệ thống mới cũng bị xóa.
+Ảnh tĩnh cũ trong thư viện ban đầu vẫn giữ để tránh xóa tài nguyên dùng chung.
+Bản sao lưu D1 Time Travel và lịch sử mã nguồn không bị xóa theo thao tác này.
 
-ADMIN_PASSWORD   (Secret) — giữ nguyên mật khẩu đang dùng
-GITHUB_TOKEN     (Secret)
+5. ĐỔI MẬT KHẨU
+Bấm Đổi mật khẩu trên thanh quản trị.
+Nhập mật khẩu hiện tại, mật khẩu mới (12–128 ký tự) và nhập lại mật khẩu mới.
+Lưu thành công sẽ yêu cầu đăng nhập lại. Các phiên cũ bị vô hiệu.
+Mật khẩu mới được lưu thành bản băm có salt trong D1; không ghi vào GitHub.
+Sau lần đổi đầu tiên, mật khẩu cũ trong ADMIN_PASSWORD không còn đăng nhập được.
+Không gửi mật khẩu qua chat.
 
-GitHub Fine-grained token cần quyền:
-Repository: vuong-chi-v5
-Contents: Read and write
+6. CẤU HÌNH CLOUDFLARE
+Cloudflare Pages: giữ ADMIN_PASSWORD hiện có làm khóa ký phiên và mật khẩu khởi tạo.
+Binding D1 bắt buộc: CMS_DB -> vuongchi-cms (Production).
+Khởi tạo bảng một lần bằng migrations/0001_cms.sql.
+16 bài ban đầu được nhập tự động một lần khi hệ thống đọc dữ liệu lần đầu.
+Nội dung sau đó lấy từ D1; triển khai lại mã không ghi đè nội dung đã sửa.
+GITHUB_TOKEN không còn cần cho đăng, sửa, ẩn, xóa bài.
+Không xóa/đặt lại D1 khi cập nhật mã nguồn. Bảo vệ CMS_DB vì nó chứa nội dung và tài khoản.
 
-Code mặc định dùng:
-GITHUB_OWNER = baolamthienphuc-sudo
-GITHUB_REPO = vuong-chi-v5
-GITHUB_BRANCH = main
+7. HÌNH ẢNH
+JPG/PNG/WebP, tối đa 20 ảnh/bài. Trình duyệt tối ưu về WebP cạnh dài 1600 px.
+Mỗi ảnh sau tối ưu tối đa 1,5 MB để lưu an toàn trong D1.
+Ảnh đầu tiên là ảnh đại diện; có thể thêm, bỏ và đổi thứ tự ảnh.
 
------------------------------------------------------
-3. SỬA BÀI CŨ
------------------------------------------------------
-Mở https://vuongchi.vn/admin
--> tên đăng nhập: daongocvuongchi
--> nhập mật khẩu quản trị hiện có
--> trong danh sách Quản lý công trình bấm Sửa
--> form bên dưới tự nạp nội dung + toàn bộ ảnh cũ
--> sửa nội dung cần thiết
--> có thể xóa ảnh khỏi bài, thêm ảnh mới hoặc đổi thứ tự
--> bấm Cập nhật công trình
-
-Đường dẫn (slug) được khóa khi sửa để tránh làm hỏng link cũ và SEO.
-
------------------------------------------------------
-4. ẨN / HIỆN BÀI
------------------------------------------------------
-Cách nhanh:
-Trong danh sách công trình bấm "Ẩn bài" hoặc "Hiện bài".
-
-Hoặc khi sửa bài:
-Trạng thái hiển thị -> chọn:
-- Hiển thị trên website
-- Ẩn / bản nháp
-
-Khi bài bị ẩn:
-- Vẫn còn trong Admin.
-- Không xuất hiện ở trang chủ/menu Công trình.
-- Link chi tiết công khai không hiển thị nội dung bài.
-- Có thể hiện lại bất cứ lúc nào.
-
------------------------------------------------------
-5. ĐĂNG BÀI MỚI
------------------------------------------------------
-Bấm "+ Đăng bài"
--> nhập thông tin
--> chọn trạng thái Hiển thị hoặc Ẩn / bản nháp
--> tải ảnh
--> bấm Đăng công trình / Lưu bản nháp.
-
-Ảnh JPG/PNG/WebP được trình duyệt tự tối ưu thành WebP trước khi gửi.
-Tối đa 20 ảnh/bài.
-
------------------------------------------------------
-6. LƯU Ý
------------------------------------------------------
-- 16 bài cũ vẫn giữ nguyên dữ liệu và ảnh, không tự động bị ẩn sau khi cập nhật V2.
-  Bạn chủ động ẩn bài nào chưa muốn khách xem.
-- 139 ảnh cũ vẫn được giữ nguyên.
-- Khi xóa một ảnh cũ trong trình chỉnh sửa, ảnh đó bị gỡ khỏi bài nhưng file ảnh cũ
-  vẫn còn trong repo để tránh xóa nhầm dữ liệu. Website sẽ không còn dùng ảnh đó.
-- Sau khi bấm Đăng/Sửa/Ẩn/Hiện, chờ Cloudflare deploy commit mới để website công khai cập nhật.
-- /admin phải chạy trên Cloudflare Pages để gọi được Pages Functions.
-
-
-=== V2.1 FIX ===
-- Sua loi trinh duyet giu cache admin.js/admin.css cu lam danh sach hien 0 bai.
-- Bo sung functions/api/admin/manage.js va publish.js V2 vao goi update.
-- Them _headers de du lieu cong trinh khong bi cache cu sau khi sua/an/hien.
-
-
-=== V3 — TÀI KHOẢN VÀ QUẢN LÝ BÀI ĐĂNG (21/10/2026) ===
-
-Tên đăng nhập cố định: daongocvuongchi
-Mật khẩu: giá trị ADMIN_PASSWORD hiện có trong Cloudflare Pages.
-Email Cloudflare không phải tài khoản đăng nhập website.
-
-Không có mật khẩu mặc định được ghi trong mã nguồn. Không cần đổi mật khẩu hiện tại.
-Sau khi đăng nhập, nút “＋ Đăng bài” nằm góc trên và trong thanh điều hướng.
-Danh sách tải trực tiếp từ GitHub sau khi xác thực, gồm cả bài ẩn/bản nháp.
-Các nút Sửa, Ẩn bài / Hiện bài và Xóa nằm trên từng dòng.
-
-XÓA VĨNH VIỄN:
-- Bấm Xóa trên đúng bài cần xóa.
-- Đọc tên bài và nhập lại chính xác đường dẫn hiển thị trong hộp xác nhận.
-- Bấm Xóa vĩnh viễn.
-- Bài bị gỡ khỏi dữ liệu hiện hành; không có thùng rác hay nút khôi phục trong Admin.
-- File ảnh cũ và lịch sử Git vẫn được giữ để không xóa nhầm tài nguyên dùng chung.
-- Đây là xóa bài đăng, không phải tẩy toàn bộ lịch sử Git hay xóa mọi bản sao trên Internet.
-
-ĐĂNG NHẬP:
-- Phiên cookie HttpOnly, SameSite=Strict, Secure trên HTTPS; thời hạn 8 giờ.
-- Không lưu mật khẩu trong sessionStorage/localStorage.
-- Đăng xuất xóa cookie khỏi trình duyệt. Đổi ADMIN_PASSWORD sẽ vô hiệu hóa các phiên cũ.
-- Yêu cầu đăng/sửa/ẩn/xóa phải có phiên hợp lệ và gửi từ cùng website.
-
-TRIỂN KHAI:
-- Đẩy các file admin/, functions/, lib/, _headers và hướng dẫn lên repo hiện có.
-- lib/ là mã hỗ trợ cần được đi kèm khi Cloudflare đóng gói Functions.
-- Giữ nguyên ADMIN_PASSWORD và GITHUB_TOKEN trong Cloudflare Pages.
-- GitHub token cần Contents: Read and write cho baolamthienphuc-sudo/vuong-chi-v5.
-- Cloudflare Pages phải kết nối nhánh main để tự triển khai sau mỗi thao tác.
-- Không tải trực tiếp file ZIP qua dashboard Pages nếu cách đó không biên dịch Functions.
-- Chờ deployment thành công trước khi kiểm tra website công khai.
-
-KIỂM TRA TRÊN MÁY:
+8. KIỂM TRA TRÊN MÁY
 node --test tests/admin.test.mjs
 node tools/preview-admin.mjs
-Preview chỉ dùng dữ liệu trong bộ nhớ, không gửi yêu cầu ra GitHub.
-Tài khoản preview: daongocvuongchi / preview-only-password (chỉ localhost, không phải mật khẩu thật).
+Preview chỉ dùng SQLite trong bộ nhớ, không thay đổi website thật.
+Tài khoản thử: daongocvuongchi / preview-only-password (chỉ localhost).
+Cần Node.js 24 hoặc mới hơn để chạy bộ kiểm tra bằng node:sqlite.
+
+Đường dẫn /admin/?manage=1 có thể dùng nếu muốn mở danh sách quản trị riêng.

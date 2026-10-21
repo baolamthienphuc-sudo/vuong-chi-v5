@@ -1,4 +1,11 @@
 [hidden]{display:none!important}
+.embedded-admin .sidebar,.embedded-admin .admin-header,.embedded-admin .manager-panel{display:none}
+.embedded-admin .admin-main{margin:0;padding:22px}
+.embedded-admin.show-manager .manager-panel{display:block}
+.embedded-admin .editor-heading{scroll-margin-top:10px}
+.account-panel{max-width:640px;margin:20px auto;padding:26px}
+.account-panel form{display:grid;gap:18px}
+.embedded-admin .account-panel{margin:0 auto}
 .login-card form{display:grid;gap:16px}
 .button.danger{background:#a43f35;color:#fff}
 .button.danger:hover{background:#883128}

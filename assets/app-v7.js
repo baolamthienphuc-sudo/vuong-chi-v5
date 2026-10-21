@@ -75,6 +75,11 @@ document.addEventListener('DOMContentLoaded', () => {
     'nha-be-tong': 'Nhà bê tông đúc sẵn',
     'nha-lap-ghep': 'Nhà lắp ghép'
   };
+  if (window.VC_PROJECTS_ERROR) {
+    const host = document.querySelector('[data-project-detail]') || document.querySelector('.project-grid');
+    if (host) host.innerHTML = '<p class="container">Không tải được công trình. Vui lòng tải lại trang sau ít phút.</p>';
+    return;
+  }
   const allProjects = (Array.isArray(window.VC_PROJECTS) ? window.VC_PROJECTS : []).map((project, index) => ({
     legacyIndex: Number.isInteger(project.legacyIndex) ? project.legacyIndex : null,
     sourceIndex: index,
@@ -94,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
     publishedAt: project.publishedAt || '',
     updatedAt: project.updatedAt || ''
   }));
-  const projects = allProjects.filter(project => !project.hidden && project.images.length);
+  const projects = allProjects.filter(project => (window.VC_IS_ADMIN === true || !project.hidden) && project.images.length);
 
   const projectParam = (project, index) => encodeURIComponent(project.slug || String(index));
   const projectHref = (project, index) => `cong-trinh.html?project=${projectParam(project, index)}`;
@@ -112,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const detailHost = document.querySelector('[data-project-detail]');
   if (detailHost) {
     if (!projects.length) {
-      detailHost.innerHTML = '<div class="container section"><p>Chưa có dữ liệu công trình.</p></div>';
+      detailHost.innerHTML = '<div class="container section"><p>Chưa có công trình hiển thị.</p></div>';
       return;
     }
     const requested = detailHost.dataset.projectSlug || new URLSearchParams(location.search).get('project');
@@ -159,12 +164,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const isHomePage = Boolean(grid && !isProjectsPage);
   if (!grid) return;
   if (!projects.length) {
-    grid.innerHTML = '<p>Chưa có dữ liệu công trình.</p>';
+    grid.innerHTML = '<p>Chưa có công trình hiển thị.</p>';
     return;
   }
 
   if (isHomePage && !isProjectsPage) {
-    const homeCards = projects.map((project, index) => `<a class="project${index === 0 ? ' large' : ''}" href="${projectHref(project, index)}"><img src="${esc(project.images[0])}" alt="${esc(project.title)}"><div class="project-info"><small>${esc(project.category)}</small><h3 class="project-title">${esc(project.title)}</h3><p>${esc(project.description)}</p></div></a>`);
+    const homeCards = projects.map((project, index) => `<article data-project-slug="${esc(project.slug)}" class="project${index === 0 ? ' large' : ''}" ><a class="project-card-link" href="${projectHref(project, index)}"><img src="${esc(project.images[0])}" alt="${esc(project.title)}"><div class="project-info"><small>${esc(project.category)}</small><h3 class="project-title">${esc(project.title)}</h3><p>${esc(project.description)}</p></div></a></article>`);
     grid.innerHTML = homeCards.join('');
     document.body.classList.add('home-project-page');
     const homePagination = document.createElement('nav');
@@ -182,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  grid.innerHTML = projects.map((project, index) => `<a class="project${index === 0 ? ' large' : ''}" href="${projectHref(project, index)}" data-index="${index}" data-project="${esc(project.type)}"><img src="${esc(project.images[0])}" alt="${esc(project.title)}"><div class="project-info"><small>${esc(project.category)}</small><h3 class="project-title">${esc(project.title)}</h3><p>${esc(project.description)}</p></div></a>`).join('');
+  grid.innerHTML = projects.map((project, index) => `<article data-project-slug="${esc(project.slug)}" class="project${index === 0 ? ' large' : ''}" data-index="${index}" data-project="${esc(project.type)}"><a class="project-card-link" href="${projectHref(project, index)}"><img src="${esc(project.images[0])}" alt="${esc(project.title)}"><div class="project-info"><small>${esc(project.category)}</small><h3 class="project-title">${esc(project.title)}</h3><p>${esc(project.description)}</p></div></a></article>`).join('');
   const filterbar = document.querySelector('.filterbar');
   if (filterbar) filterbar.innerHTML = '<label class="project-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Tìm kiếm công trình..." aria-label="Tìm kiếm công trình"></label><select class="project-select" aria-label="Loại công trình"><option value="">Tất cả</option><option value="nha-pho">Nhà phố</option><option value="nha-cap-4">Nhà cấp 4</option><option value="biet-thu">Biệt thự</option><option value="nha-vuon">Nhà vườn</option><option value="nha-chau-au">Nhà châu Âu</option><option value="nha-be-tong">Nhà bê tông đúc sẵn</option><option value="nha-lap-ghep">Nhà lắp ghép</option></select><div class="project-tabs"><button class="filter active" data-project-filter="">Tất cả</button><button class="filter" data-project-filter="nha-pho">Nhà phố</button><button class="filter" data-project-filter="nha-cap-4">Nhà cấp 4</button><button class="filter" data-project-filter="biet-thu">Biệt thự</button><button class="filter" data-project-filter="nha-vuon">Nhà vườn</button><button class="filter" data-project-filter="nha-chau-au">Nhà châu Âu</button><button class="filter" data-project-filter="nha-be-tong">Nhà bê tông đúc sẵn</button><button class="filter" data-project-filter="nha-lap-ghep">Nhà lắp ghép</button></div>';
   const search = filterbar?.querySelector('input');

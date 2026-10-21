@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <title>Quản lý bài đăng | Vương Chí Construction</title>
   <link rel="icon" href="../assets/images/logo.png">
-  <link rel="stylesheet" href="/admin/admin.css?v=20261021-v3">
+  <link rel="stylesheet" href="/admin/admin.css?v=20261021-v4">
 </head>
 <body>
   <section class="login-screen" data-login-screen>
@@ -46,7 +46,8 @@
         <a class="active" href="#manage"><span>▦</span> Quản lý bài đăng</a>
         <a href="#editor" data-new-project><span>＋</span> Đăng bài</a>
         <a href="../du-an.html" target="_blank" rel="noopener"><span>↗</span> Xem trang công trình</a>
-        <a href="../index.html" target="_blank" rel="noopener"><span>⌂</span> Xem website</a>
+        <a href="/"><span>⌂</span> Về website chỉnh sửa</a>
+        <a href="#account" data-open-account><span>⚙</span> Đổi mật khẩu</a>
       </nav>
       <div class="sidebar-bottom">
         <div class="repo-status"><i></i><span>daongocvuongchi</span></div>
@@ -59,7 +60,7 @@
         <div>
           <p class="eyebrow">NỘI DUNG WEBSITE</p>
           <h1>Quản lý bài đăng</h1>
-          <p>Đăng bài mới, sửa nội dung, ẩn bài hoặc xóa bài không còn sử dụng.</p>
+          <p>Đăng bài mới, sửa nội dung, ẩn bài hoặc xóa bài. Thay đổi được lưu ngay.</p>
         </div>
         <button class="button primary" type="button" data-new-project>＋ Đăng bài</button>
       </header>
@@ -193,10 +194,22 @@
               </ul>
               <button class="button primary full publish-button" type="submit" data-publish>Đăng bài</button>
               <button class="button ghost full cancel-edit-card" type="button" data-cancel-edit hidden>Hủy chỉnh sửa</button>
-              <p class="publish-note">Sau khi lưu, website cần một ít thời gian để cập nhật. Bản nháp không xuất hiện trong danh sách công khai.</p>
+              <p class="publish-note">Nội dung cập nhật ngay sau khi lưu. Bản nháp chỉ hiển thị với tài khoản quản trị.</p>
               <div class="publish-message" data-publish-message aria-live="polite"></div>
             </section>
           </aside>
+        </form>
+      </section>
+      <section class="panel account-panel" id="account" data-account-panel hidden>
+        <p class="eyebrow">TÀI KHOẢN QUẢN TRỊ</p>
+        <h2>Đổi mật khẩu</h2>
+        <p>Tài khoản: <strong>daongocvuongchi</strong></p>
+        <form data-password-form>
+          <label class="field"><span>Mật khẩu hiện tại</span><input type="password" name="currentPassword" autocomplete="current-password" maxlength="1024" required></label>
+          <label class="field"><span>Mật khẩu mới</span><input type="password" name="newPassword" autocomplete="new-password" minlength="12" maxlength="128" required><em>Từ 12 ký tự trở lên.</em></label>
+          <label class="field"><span>Nhập lại mật khẩu mới</span><input type="password" name="confirmPassword" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+          <button class="button primary" type="submit">Lưu mật khẩu mới</button>
+          <p class="form-message" data-password-message role="status" aria-live="polite"></p>
         </form>
       </section>
     </main>
@@ -207,7 +220,7 @@
       <p class="eyebrow">XÓA BÀI ĐĂNG</p>
       <h2 id="delete-heading">Xóa vĩnh viễn bài này?</h2>
       <p data-delete-title></p>
-      <p>Bài sẽ bị xóa khỏi kho nội dung và không thể khôi phục từ trang quản trị. Website công khai cập nhật sau khi triển khai xong.</p>
+      <p>Bài sẽ bị xóa ngay khỏi website và không thể khôi phục từ trang quản trị. Ảnh đã tải lên riêng cho bài này cũng bị xóa.</p>
       <label class="field">
         <span>Nhập đường dẫn bài để xác nhận:</span>
         <code data-delete-slug></code>
@@ -220,6 +233,6 @@
       </div>
     </form>
   </dialog>
-  <script src="/admin/admin.js?v=20261021-v3"></script>
+  <script src="/admin/admin.js?v=20261021-v4"></script>
 </body>
 </html>

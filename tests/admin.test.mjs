@@ -3,139 +3,119 @@ import assert from 'node:assert/strict';
 import * as auth from '../functions/api/admin/auth.js';
 import * as manage from '../functions/api/admin/manage.js';
 import * as publish from '../functions/api/admin/publish.js';
-import { createSession, hasSession } from '../lib/admin-session.js';
-import { createGithubFixture } from './github-fixture.mjs';
+import * as password from '../functions/api/admin/password.js';
+import * as media from '../functions/api/media/[id].js';
+import * as projectsApi from '../functions/api/projects.js';
+import { createSession } from '../lib/admin-session.js';
+import { getProject, listProjects } from '../lib/cms-store.js';
+import { createTestDatabase } from './d1-fixture.mjs';
 
 const origin = 'https://vuongchi.vn';
-const env = { ADMIN_PASSWORD: 'local-test-password-only', GITHUB_TOKEN: 'mock-token' };
-const sample = {
-  slug: 'nha-pho-bao-loc', title: 'Nhà phố Bảo Lộc', type: 'nha-pho',
-  description: 'Thi công nhà phố', content: 'Nội dung công trình.\nĐoạn thứ hai.',
-  images: ['gallery-01-villa-hien-dai-2-tang/test.webp'], hidden: false
-};
-const cookie = async () => `vc_admin_session=${await createSession(env)}`;
-const context = (path, { method = 'GET', body, headers = {}, bindings = env } = {}) => ({
-  env: bindings,
-  request: new Request(`${origin}/api/admin/${path}`, {
-    method, body,
-    headers: { Origin: origin, ...headers }
-  })
-});
-const form = values => {
-  const data = new FormData();
-  for (const [key, value] of Object.entries(values)) data.set(key, typeof value === 'string' ? value : JSON.stringify(value));
-  return data;
-};
-const image = new Blob([Uint8Array.from([0x52, 0x49, 0x46, 0x46])], { type: 'image/webp' });
+const sample = { slug: 'nha-pho', title: 'Nhà phố', type: 'nha-pho', description: 'Mô tả', content: 'Nội dung', images: ['gallery/test.webp'], hidden: false };
+const setup = (projects = [sample]) => ({ ADMIN_PASSWORD: 'test-original-password', CMS_DB: createTestDatabase(projects) });
+const context = (env, endpoint, method = 'GET', body, cookie = '', extra = {}) => ({ env, params: extra.params || {}, request: new Request(origin + '/api/' + endpoint, { method, body, headers: { Origin: origin, Cookie: cookie, ...extra.headers } }) });
+const session = async env => 'vc_cms_session=' + await createSession(env);
+const form = fields => { const data = new FormData(); for (const [key,value] of Object.entries(fields)) data.set(key, typeof value === 'string' ? value : JSON.stringify(value)); return data; };
+const login = (env, username, password) => auth.onRequestPost(context(env, 'admin/auth', 'POST', JSON.stringify({ username, password })));
+const image = new Blob([Uint8Array.from([82,73,70,70])], { type: 'image/webp' });
 
-test('login requires the configured username and password, creates secure cookie, and logout clears it', async () => {
-  const login = input => auth.onRequestPost(context('auth', {
-    method: 'POST', body: JSON.stringify(input), headers: { 'Content-Type': 'application/json' }
-  }));
-  assert.equal((await login({ username: 'wrong', password: env.ADMIN_PASSWORD })).status, 401);
-  assert.equal((await login({ username: 'daongocvuongchi', password: 'wrong' })).status, 401);
-  assert.equal((await login(null)).status, 400);
-  const response = await login({ username: 'daongocvuongchi', password: env.ADMIN_PASSWORD });
+test('username login issues an HttpOnly root cookie; unauthenticated and cross-origin writes fail', async () => {
+  const env = setup();
+  assert.equal((await login(env, 'wrong', env.ADMIN_PASSWORD)).status, 401);
+  const response = await login(env, 'daongocvuongchi', env.ADMIN_PASSWORD);
   assert.equal(response.status, 200);
-  assert.equal((await response.json()).username, 'daongocvuongchi');
-  const setCookie = response.headers.get('set-cookie');
-  assert.match(setCookie, /HttpOnly/);
-  assert.match(setCookie, /SameSite=Strict/);
-  assert.match(setCookie, /Secure/);
-  assert.ok(!setCookie.includes(env.ADMIN_PASSWORD));
-  assert.equal((await auth.onRequestGet(context('auth', { headers: { Cookie: setCookie.split(';')[0] } }))).status, 200);
-  const logout = auth.onRequestDelete(context('auth', { method: 'DELETE' }));
-  assert.match(logout.headers.get('set-cookie'), /Max-Age=0/);
+  const cookie = response.headers.get('set-cookie');
+  assert.ok(cookie.includes('Path=/;')); assert.match(cookie, /HttpOnly/); assert.match(cookie, /SameSite=Strict/); assert.match(cookie, /Secure/);
+  assert.ok(!cookie.includes(env.ADMIN_PASSWORD));
+  assert.equal((await manage.onRequestGet(context(env,'admin/manage'))).status,401);
+  assert.equal((await publish.onRequestPost(context(env,'admin/publish','POST',undefined,cookie,{headers:{Origin:'https://elsewhere.example'}}))).status,403);
+  assert.equal((await auth.onRequestGet(context(env,'admin/auth','GET',undefined,cookie.split(';')[0]+'x'))).status,401);
+  const logout=auth.onRequestDelete(context(env,'admin/auth','DELETE',undefined,cookie));
+  assert.match(logout.headers.get('set-cookie'),/Max-Age=0/);
+  env.CMS_DB.close();
 });
 
-test('tampered, expired, malformed, and password-rotated sessions are rejected', async () => {
-  const token = await cookie();
-  assert.equal(await hasSession(context('auth', { headers: { Cookie: `${token}x` } })), false);
-  assert.equal(await hasSession(context('auth', { headers: { Cookie: 'vc_admin_session=broken' } })), false);
-  assert.equal(await hasSession(context('auth', { headers: { Cookie: token }, bindings: { ...env, ADMIN_PASSWORD: 'changed' } })), false);
-  const now = Date.now;
-  let expired;
-  try {
-    Date.now = () => now() - 9 * 60 * 60 * 1000;
-    expired = await cookie();
-  } finally { Date.now = now; }
-  assert.equal(await hasSession(context('auth', { headers: { Cookie: expired } })), false);
+test('publishing writes immediately; editing replaces data; hiding excludes public content and protects media', async () => {
+  const env=setup(); const cookie=await session(env);
+  const newPost={...sample,slug:'bai-moi',title:'Bài mới'};
+  const input=form({project:newPost}); input.append('images',image,'cover.webp');
+  const response=await publish.onRequestPost(context(env,'admin/publish','POST',input,cookie));
+  assert.equal(response.status,200);
+  let project=(await response.json()).project;
+  assert.ok((await listProjects(env)).some(item=>item.slug==='bai-moi'));
+  const id=project.images[0].split('/').at(-1);
+  assert.equal((await media.onRequestGet(context(env,'media/'+id,'GET',undefined,'',{params:{id}}))).status,200);
+  const edited={...project,title:'Tiêu đề đã sửa',content:'Nội dung đã sửa'};
+  const update=form({action:'update',slug:project.slug,version:project.version,project:edited,imageOrder:[{kind:'existing',path:project.images[0]}]});
+  assert.equal((await manage.onRequestPost(context(env,'admin/manage','POST',update,cookie))).status,200);
+  project=await getProject(env,project.slug); assert.equal(project.title,edited.title);
+  const hide=form({action:'visibility',slug:project.slug,version:project.version,hidden:'true'});
+  assert.equal((await manage.onRequestPost(context(env,'admin/manage','POST',hide,cookie))).status,200);
+  assert.ok(!(await listProjects(env)).some(item=>item.slug===project.slug));
+  const publicResponse=await projectsApi.onRequestGet(context(env,'projects?format=json'));
+  assert.ok(!(await publicResponse.json()).projects.some(item=>item.slug===project.slug));
+  const adminResponse=await projectsApi.onRequestGet(context(env,'projects?format=json','GET',undefined,cookie));
+  assert.ok((await adminResponse.json()).projects.some(item=>item.slug===project.slug));
+  assert.equal((await media.onRequestGet(context(env,'media/'+id,'GET',undefined,'',{params:{id}}))).status,404);
+  assert.equal((await media.onRequestGet(context(env,'media/'+id,'GET',undefined,cookie,{params:{id}}))).status,200);
+  project=await getProject(env,project.slug);
+  assert.equal((await manage.onRequestPost(context(env,'admin/manage','POST',form({action:'visibility',slug:project.slug,version:project.version,hidden:'false'}),cookie))).status,200);
+  assert.ok((await listProjects(env)).some(item=>item.slug===project.slug));
+  env.CMS_DB.close();
 });
 
-test('unauthenticated, legacy password-only, and cross-origin mutations cannot access content', async () => {
-  for (const handler of [manage.onRequestPost, publish.onRequestPost]) {
-    assert.equal((await handler(context('manage', { method: 'POST' }))).status, 401);
-    assert.equal((await handler(context('manage', { method: 'POST', headers: { 'X-Admin-Password': env.ADMIN_PASSWORD } }))).status, 401);
-    assert.equal((await handler(context('manage', { method: 'POST', headers: { Cookie: await cookie(), Origin: 'https://other.example' } }))).status, 403);
-  }
-  assert.equal((await manage.onRequestGet(context('manage'))).status, 401);
-  assert.equal((await auth.onRequestPost(context('auth', { method: 'POST', headers: { Origin: 'https://other.example' } }))).status, 403);
+test('permanent deletion requires confirmation and removes only its own record and uploaded images', async () => {
+  const env=setup(); const cookie=await session(env);
+  const data=form({project:{...sample,slug:'delete-me'}}); data.append('images',image,'cover.webp');
+  const created=await publish.onRequestPost(context(env,'admin/publish','POST',data,cookie));
+  const project=(await created.json()).project; const id=project.images[0].split('/').at(-1);
+  const deletion=confirmSlug=>manage.onRequestPost(context(env,'admin/manage','POST',form({action:'delete',slug:project.slug,version:project.version,confirmSlug}),cookie));
+  assert.equal((await deletion('wrong')).status,400);
+  assert.ok(await getProject(env,project.slug));
+  assert.equal((await deletion(project.slug)).status,200);
+  assert.equal(await getProject(env,project.slug),null);
+  assert.ok(await getProject(env,sample.slug));
+  assert.equal((await media.onRequestGet(context(env,'media/'+id,'GET',undefined,cookie,{params:{id}}))).status,404);
+  env.CMS_DB.close();
 });
 
-test('publish, edit, hide, show, and permanent delete preserve unrelated projects and use atomic commits', async t => {
-  const other = { ...sample, slug: 'another-project', title: 'Bài khác' };
-  const fixture = createGithubFixture([sample, other]);
-  t.mock.method(globalThis, 'fetch', fixture.fetch);
-  const headers = { Cookie: await cookie() };
-  const list = await manage.onRequestGet(context('manage', { headers }));
-  assert.equal((await list.json()).projects.length, 2);
-
-  const created = { ...sample, slug: 'cong-trinh-moi', title: 'Công trình mới', hidden: true };
-  const data = form({ project: created });
-  data.append('images', image, 'cover.webp');
-  const published = await publish.onRequestPost(context('publish', { method: 'POST', body: data, headers }));
-  assert.equal(published.status, 200);
-  assert.equal(fixture.projects()[0].hidden, true);
-  assert.match(fixture.projects()[0].images[0], /^uploads\/projects\/cong-trinh-moi\//);
-
-  const edited = { ...sample, title: 'Nhà phố đã chỉnh sửa', content: 'Nội dung mới' };
-  const updated = await manage.onRequestPost(context('manage', {
-    method: 'POST', headers,
-    body: form({ action: 'update', slug: sample.slug, project: edited, imageOrder: [{ kind: 'existing', path: sample.images[0] }] })
-  }));
-  assert.equal(updated.status, 200);
-  assert.equal(fixture.projects().find(item => item.slug === sample.slug).title, edited.title);
-
-  for (const hidden of ['true', 'false']) {
-    const response = await manage.onRequestPost(context('manage', {
-      method: 'POST', headers, body: form({ action: 'visibility', slug: sample.slug, hidden })
-    }));
-    assert.equal(response.status, 200);
-    assert.equal(fixture.projects().find(item => item.slug === sample.slug).hidden, hidden === 'true');
-  }
-
-  const beforeDelete = fixture.calls.filter(call => call.method === 'PATCH').length;
-  const rejected = await manage.onRequestPost(context('manage', {
-    method: 'POST', headers, body: form({ action: 'delete', slug: sample.slug, confirmSlug: 'wrong' })
-  }));
-  assert.equal(rejected.status, 400);
-  assert.equal(fixture.calls.filter(call => call.method === 'PATCH').length, beforeDelete);
-  const deleted = await manage.onRequestPost(context('manage', {
-    method: 'POST', headers, body: form({ action: 'delete', slug: sample.slug, confirmSlug: sample.slug })
-  }));
-  assert.equal(deleted.status, 200);
-  assert.ok(!fixture.projects().some(item => item.slug === sample.slug));
-  assert.deepEqual(fixture.projects().find(item => item.slug === other.slug), other);
-  assert.equal(fixture.projects().length, 2);
+test('password change checks the current password, persists a salted hash, and invalidates all previous sessions', async () => {
+  const env=setup(); const cookie=await session(env); const newPassword='a-new-test-password-2026';
+  const change=input=>password.onRequestPost(context(env,'admin/password','POST',JSON.stringify(input),cookie));
+  const fields={currentPassword:env.ADMIN_PASSWORD,newPassword,confirmPassword:newPassword};
+  assert.equal((await change({...fields,currentPassword:'wrong'})).status,400);
+  assert.equal((await change({...fields,confirmPassword:'mismatch'})).status,400);
+  assert.equal((await change(fields)).status,200);
+  const stored=await env.CMS_DB.prepare('SELECT * FROM cms_account').first();
+  assert.ok(stored.salt); assert.ok(!JSON.stringify(stored).includes(newPassword));
+  assert.equal((await auth.onRequestGet(context(env,'admin/auth','GET',undefined,cookie))).status,401);
+  assert.equal((await login(env,'daongocvuongchi',env.ADMIN_PASSWORD)).status,401);
+  assert.equal((await login(env,'daongocvuongchi',newPassword)).status,200);
+  env.CMS_DB.close();
 });
 
-test('duplicate slugs, invalid images, and conflicting commits do not overwrite live content', async t => {
-  const fixture = createGithubFixture([sample]);
-  t.mock.method(globalThis, 'fetch', fixture.fetch);
-  const headers = { Cookie: await cookie() };
-  const duplicate = form({ project: sample });
-  duplicate.append('images', image, 'cover.webp');
-  assert.equal((await publish.onRequestPost(context('publish', { method: 'POST', headers, body: duplicate }))).status, 409);
-  const invalid = form({ action: 'update', slug: sample.slug, project: sample, imageOrder: [{ kind: 'existing', path: 'not-owned.webp' }] });
-  assert.equal((await manage.onRequestPost(context('manage', { method: 'POST', headers, body: invalid }))).status, 400);
-  fixture.setConflict(true);
-  const originalError = console.error;
-  console.error = () => {};
-  try {
-    const response = await manage.onRequestPost(context('manage', {
-      method: 'POST', headers, body: form({ action: 'delete', slug: sample.slug, confirmSlug: sample.slug })
-    }));
-    assert.equal(response.status, 409);
-    assert.deepEqual(fixture.projects(), [sample]);
-  } finally { console.error = originalError; }
+test('stale edits are rejected, duplicate slugs roll back, and invalid images cannot be uploaded', async () => {
+  const env=setup(); const cookie=await session(env); const project=await getProject(env,sample.slug);
+  const stale=form({action:'visibility',slug:project.slug,version:'stale',hidden:'true'});
+  assert.equal((await manage.onRequestPost(context(env,'admin/manage','POST',stale,cookie))).status,409);
+  assert.equal((await getProject(env,project.slug)).hidden,false);
+  const duplicate=form({project:sample}); duplicate.append('images',image,'cover.webp');
+  assert.equal((await publish.onRequestPost(context(env,'admin/publish','POST',duplicate,cookie))).status,409);
+  const invalid=form({project:{...sample,slug:'invalid'}}); invalid.append('images',new Blob(['bad'],{type:'text/html'}),'file.html');
+  assert.equal((await publish.onRequestPost(context(env,'admin/publish','POST',invalid,cookie))).status,400);
+  assert.equal(await getProject(env,'invalid'),null);
+  env.CMS_DB.close();
+});
+
+test('login attempts are limited and initialization never resurrects deleted seed content', async () => {
+  const env=setup();
+  for(let i=0;i<10;i++) assert.equal((await login(env,'daongocvuongchi','wrong')).status,401);
+  assert.equal((await login(env,'daongocvuongchi','wrong')).status,429);
+  env.CMS_DB.close();
+  const seeded=setup(null); const projects=await listProjects(seeded,true); assert.equal(projects.length,16);
+  const first=projects[0]; const cookie=await session(seeded);
+  await manage.onRequestPost(context(seeded,'admin/manage','POST',form({action:'delete',slug:first.slug,version:first.version,confirmSlug:first.slug}),cookie));
+  assert.equal((await listProjects(seeded,true)).length,15);
+  assert.equal((await listProjects(seeded,true)).length,15);
+  seeded.CMS_DB.close();
 });

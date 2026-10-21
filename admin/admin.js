@@ -1,4 +1,12 @@
 (() => {
+  const pageOptions = new URLSearchParams(location.search);
+  const embedded = pageOptions.get('embed') === '1';
+  if (embedded) document.body.classList.add('embedded-admin');
+  const imageUrl = path => String(path || '').startsWith('/') ? path : '/' + path;
+  const notifySaved = (project = {}) => {
+    if (embedded) window.parent.postMessage({ type: 'vc-cms-saved', slug: project.slug }, location.origin);
+  };
+
   const loginScreen = document.querySelector('[data-login-screen]');
   const adminShell = document.querySelector('[data-admin-shell]');
   const loginForm = document.querySelector('[data-login-form]');
@@ -108,7 +116,21 @@
     loginForm.elements.namedItem('password').value = '';
     updateChecks();
     updatePublishMode();
+    if (!embedded && pageOptions.get('manage') !== '1' && pageOptions.get('account') !== '1') {
+      const target = new URL(pageOptions.get('returnTo') || '/', location.origin);
+      location.assign(target.origin === location.origin && !target.pathname.startsWith('/admin') ? target.href : '/');
+      return;
+    }
     await refreshProjects();
+    if (pageOptions.get('account') === '1') {
+      document.querySelector('[data-account-panel]').hidden = false;
+    } else if (embedded && pageOptions.get('view') === 'manage') {
+      document.body.classList.add('show-manager');
+    } else if (pageOptions.has('edit')) {
+      const index = findProjectIndexBySlug(pageOptions.get('edit'));
+      if (index >= 0) loadProjectForEdit(index);
+      else showManagerMessage('Bài không còn tồn tại.', 'error');
+    } else if (embedded) resetForm(false);
   };
 
   const tryStoredLogin = async () => {
@@ -175,7 +197,7 @@
       const statusText = project.hidden ? 'Ẩn / bản nháp' : 'Đang hiển thị';
       const href = `../cong-trinh.html?project=${encodeURIComponent(project.slug || '')}`;
       return `<article class="manager-item${project.hidden ? ' is-hidden' : ''}">
-        <div class="manager-cover">${cover ? `<img src="../${escapeHtml(cover)}" alt="">` : '<span>Chưa có ảnh</span>'}</div>
+        <div class="manager-cover">${cover ? `<img src="${escapeHtml(imageUrl(cover))}" alt="">` : '<span>Chưa có ảnh</span>'}</div>
         <div class="manager-info">
           <div class="manager-meta"><span class="status-badge ${statusClass}">${statusText}</span><span>${escapeHtml(project.category || 'Công trình')}</span></div>
           <h3>${escapeHtml(project.title || 'Công trình')}</h3>
@@ -241,7 +263,7 @@
     setFormValue('cost', project.cost === 'Đang cập nhật' ? '' : project.cost);
     setFormValue('description', project.description);
     setFormValue('content', project.content);
-    selectedImages = (project.images || []).map(path => ({ kind: 'existing', path, url: `../${path}` }));
+    selectedImages = (project.images || []).map(path => ({ kind: 'existing', path, url: imageUrl(path) }));
     setEditorMode(project);
     renderImages();
     showMessage(publishMessage, '');
@@ -299,11 +321,14 @@
       const formData = new FormData();
       formData.append('action', 'visibility');
       formData.append('slug', project.slug);
+      formData.append('version', project.version);
       formData.append('hidden', String(nextHidden));
       const data = await api('manage', { method: 'POST', body: formData });
+      Object.assign(project, data.project);
       project.hidden = nextHidden;
       project.updatedAt = data.project?.updatedAt || new Date().toISOString();
-      showManagerMessage('Đã lưu trạng thái bài. Website sẽ cập nhật sau khi triển khai xong.', 'success');
+      showManagerMessage('Đã cập nhật trạng thái bài trên website.', 'success');
+      notifySaved(project);
       renderManager();
       if (editingSlug === project.slug) {
         setFormValue('visibility', nextHidden ? 'hidden' : 'visible');
@@ -332,6 +357,7 @@
       form.set('action', 'delete');
       form.set('slug', deletingSlug);
       form.set('confirmSlug', confirmSlug);
+      form.set('version', projects.find(project => project.slug === deletingSlug)?.version || '');
       await api('manage', { method: 'POST', body: form });
       const index = findProjectIndexBySlug(deletingSlug);
       if (index >= 0) projects.splice(index, 1);
@@ -341,7 +367,8 @@
       }
       renderManager();
       deleteDialog.close();
-      showManagerMessage('Đã xóa bài khỏi kho nội dung. Website sẽ cập nhật sau khi triển khai xong.', 'success');
+      showManagerMessage('Đã xóa bài khỏi website.', 'success');
+      notifySaved();
     } catch (error) {
       message.textContent = error.message;
     } finally {
@@ -374,7 +401,7 @@
 
   const convertImage = async file => {
     const bitmap = await createImageBitmap(file);
-    const max = 2200;
+    const max = 1600;
     const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
     const width = Math.max(1, Math.round(bitmap.width * scale));
     const height = Math.max(1, Math.round(bitmap.height * scale));
@@ -384,7 +411,9 @@
     const ctx = canvas.getContext('2d');
     ctx.drawImage(bitmap, 0, 0, width, height);
     bitmap.close?.();
-    const blob = await canvasToBlob(canvas, 'image/webp', 0.86);
+    let blob = await canvasToBlob(canvas, 'image/webp', 0.82);
+    if (blob.size > 1500000) blob = await canvasToBlob(canvas, 'image/webp', 0.65);
+    if (blob.size > 1500000) throw new Error('Ảnh còn quá lớn. Vui lòng chọn ảnh nhỏ hơn.');
     const baseName = slugify(file.name.replace(/\.[^.]+$/, '')) || 'anh-cong-trinh';
     return new File([blob], `${baseName}.webp`, { type: 'image/webp' });
   };
@@ -537,6 +566,7 @@
     const formData = new FormData();
     formData.append('action', 'update');
     formData.append('slug', editingSlug);
+    formData.append('version', projects.find(project => project.slug === editingSlug)?.version || '');
     formData.append('project', JSON.stringify(fields));
     formData.append('imageOrder', JSON.stringify(order));
     newFiles.forEach((file, index) => formData.append('images', file, `${String(index + 1).padStart(2, '0')}.webp`));
@@ -545,7 +575,7 @@
       const index = findProjectIndexBySlug(editingSlug);
       if (index >= 0) projects[index] = { ...data.project, hidden: data.project.hidden === true, images: [...(data.project.images || [])] };
       editingSlug = data.project.slug;
-      selectedImages = (data.project.images || []).map(path => ({ kind: 'existing', path, url: `../${path}` }));
+      selectedImages = (data.project.images || []).map(path => ({ kind: 'existing', path, url: imageUrl(path) }));
       renderManager();
       renderImages();
       setEditorMode(data.project);
@@ -571,12 +601,13 @@
     try {
       const data = isEditing ? await submitProjectUpdate(fields) : await submitNewProject(fields);
       const project = data.project || fields;
+      notifySaved(project);
       const hidden = project.hidden === true || fields.hidden === true;
       const url = `../cong-trinh.html?project=${encodeURIComponent(project.slug || fields.slug)}`;
       publishMessage.className = 'publish-message success';
       publishMessage.innerHTML = hidden
         ? `Đã lưu thành công ở trạng thái <b>Ẩn / bản nháp</b>. Bài không xuất hiện với khách truy cập.<br><button type="button" class="text-button" data-back-manager>Quay lại danh sách công trình</button>`
-        : `Đã lưu bài thành công. Website sẽ cập nhật sau khi triển khai xong.<br><a href="${url}" target="_blank" rel="noopener">Mở bài công trình ↗</a> &nbsp;•&nbsp; <button type="button" class="text-button" data-back-manager>Quay lại danh sách</button>`;
+        : `Đã lưu bài thành công. Nội dung đã cập nhật trên website.<br><a href="${url}" target="_blank" rel="noopener">Mở bài công trình ↗</a> &nbsp;•&nbsp; <button type="button" class="text-button" data-back-manager>Quay lại danh sách</button>`;
       publishMessage.querySelector('[data-back-manager]')?.addEventListener('click', () => {
         document.querySelector('#manage')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
@@ -597,5 +628,33 @@
     }
   });
 
+  document.querySelector('[data-open-account]').addEventListener('click', event => {
+    event.preventDefault();
+    const panel = document.querySelector('[data-account-panel]');
+    panel.hidden = false;
+    panel.scrollIntoView({ behavior: 'smooth' });
+  });
+  document.querySelector('[data-password-form]').addEventListener('submit', async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector('button[type="submit"]');
+    const message = document.querySelector('[data-password-message]');
+    const fields = Object.fromEntries(new FormData(form));
+    if (fields.newPassword !== fields.confirmPassword) {
+      showMessage(message, 'Hai lần nhập mật khẩu mới chưa khớp.', 'error');
+      return;
+    }
+    button.disabled = true;
+    try {
+      const data = await api('password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fields) });
+      form.reset();
+      if (embedded) window.parent.postMessage({ type: 'vc-cms-password-changed' }, location.origin);
+      returnToLogin(data.message);
+      showMessage(loginMessage, data.message, 'success');
+    } catch (error) {
+      showMessage(message, error.message, 'error');
+    } finally { button.disabled = false; }
+  });
+  if (pageOptions.get('changed') === '1') showMessage(loginMessage, 'Đã đổi mật khẩu. Hãy đăng nhập bằng mật khẩu mới.', 'success');
   tryStoredLogin();
 })();
