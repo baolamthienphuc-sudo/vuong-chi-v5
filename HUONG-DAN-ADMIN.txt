@@ -109,7 +109,6 @@ Tối đa 20 ảnh/bài.
 
 Tên đăng nhập cố định: daongocvuongchi
 Mật khẩu: giá trị ADMIN_PASSWORD hiện có trong Cloudflare Pages.
-Tài khoản Cloudflare: baolam.thienphuc@gmail.com
 Email Cloudflare không phải tài khoản đăng nhập website.
 
 Không có mật khẩu mặc định được ghi trong mã nguồn. Không cần đổi mật khẩu hiện tại.
