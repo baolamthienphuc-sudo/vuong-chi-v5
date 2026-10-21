@@ -119,3 +119,23 @@ test('login attempts are limited and initialization never resurrects deleted see
   assert.equal((await listProjects(seeded,true)).length,15);
   seeded.CMS_DB.close();
 });
+
+test('existing signed admin sessions upgrade once and stop working after password change', async () => {
+  const env = setup();
+  const encoder = new TextEncoder();
+  const payload = Buffer.from(JSON.stringify({ username: 'daongocvuongchi', expires: Math.floor(Date.now() / 1000) + 3600, nonce: 'legacy' })).toString('base64url');
+  const key = await crypto.subtle.importKey('raw', encoder.encode('vuongchi-admin-v1:' + env.ADMIN_PASSWORD), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const signature = Buffer.from(await crypto.subtle.sign('HMAC', key, encoder.encode(payload))).toString('base64url');
+  const legacy = 'vc_admin_session=' + payload + '.' + signature;
+  const upgrade = await auth.onRequestGet(context(env, 'admin/auth', 'GET', undefined, legacy));
+  assert.equal(upgrade.status, 200);
+  assert.ok(upgrade.headers.getSetCookie().some(value => value.startsWith('vc_admin_session=;') && value.includes('Max-Age=0')));
+  const cookie = upgrade.headers.get('set-cookie').split(';')[0];
+  assert.ok(cookie.startsWith('vc_cms_session='));
+  const newPassword = 'test-after-migration-password';
+  const changed = await password.onRequestPost(context(env, 'admin/password', 'POST', JSON.stringify({ currentPassword: env.ADMIN_PASSWORD, newPassword, confirmPassword: newPassword }), cookie));
+  assert.equal(changed.status, 200);
+  assert.equal((await auth.onRequestGet(context(env, 'admin/auth', 'GET', undefined, legacy))).status, 401);
+  assert.equal((await auth.onRequestGet(context(env, 'admin/auth', 'GET', undefined, cookie))).status, 401);
+  env.CMS_DB.close();
+});

@@ -28,7 +28,9 @@ http.createServer(async (req, res) => {
       const handlers = url.pathname === '/api/projects' ? publicProjects : url.pathname.startsWith('/api/media/') ? media : { auth, manage, publish, password }[url.pathname.split('/').at(-1)];
       const handler = handlers?.[`onRequest${method[0]}${method.slice(1).toLowerCase()}`] || handlers?.onRequest;
       const response = handler ? await handler({ request, env, params: { id: url.pathname.split('/').at(-1) } }) : new Response('Not found', { status: 404 });
-      res.writeHead(response.status, Object.fromEntries(response.headers));
+      const headers = Object.fromEntries(response.headers);
+      if (response.headers.has('set-cookie')) headers['set-cookie'] = response.headers.getSetCookie();
+      res.writeHead(response.status, headers);
       res.end(Buffer.from(await response.arrayBuffer()));
       return;
     }
